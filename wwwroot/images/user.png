@@ -1,0 +1,6 @@
+﻿namespace MyBlazorServerApp.wwwroot.images
+{
+    public class user
+    {
+    }
+}

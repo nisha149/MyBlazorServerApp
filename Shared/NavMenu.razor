@@ -1,0 +1,45 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+
+<nav class="nav flex-column p-3">
+    <NavLink href="/" Match="NavLinkMatch.All" class="nav-link">
+        <span class="oi oi-home" aria-hidden="true"></span> Home
+    </NavLink>
+    <NavLink href="/customers" class="nav-link">
+        <span class="oi oi-people" aria-hidden="true"></span> Customers
+    </NavLink>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
+
+<style>
+    .nav-link {
+        font-size: 1.1rem;
+        padding: 0.5rem 1rem;
+        color: #1e3a8a;
+    }
+
+        .nav-link.active {
+            background-color: #e0e2ea;
+            border-radius: 4px;
+        }
+
+        .nav-link:hover {
+            background-color: #f1f3f5;
+            text-decoration: none;
+        }
+
+    .oi {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-right: 0.5rem;
+    }
+</style>

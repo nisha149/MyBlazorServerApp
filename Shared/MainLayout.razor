@@ -1,0 +1,111 @@
+﻿@inherits LayoutComponentBase
+<div class="layout-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <button class="hamburger-menu" @onclick="ToggleMenu">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        <ul class="nav-links @(isMenuOpen ? "open" : "")">
+            <li>
+                <NavLink href="/" Match="NavLinkMatch.All">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </NavLink>
+            </li>
+
+            <!-- Master with submenu -->
+            <li>
+                <a href="javascript:void(0)" @onclick="ToggleMasterMenu">
+                    <i class="bi bi-layers"></i> Master
+                </a>
+                @if (isMasterMenuOpen)
+                {
+                    <ul class="submenu">
+                        <li>
+                            <NavLink href="/productgroup"><i class="bi bi-grid"></i> Product Group</NavLink>
+                        </li>
+                        <li>
+                            <NavLink href="/products"><i class="bi bi-box-seam"></i> Products</NavLink>
+                        </li>
+                        <li><NavLink href="/customers"><i class="bi bi-people"></i> Customers</NavLink></li>
+                        <li>
+                            <NavLink href="/supplier"><i class="bi bi-truck"></i> Supplier</NavLink>
+                        </li>
+                    </ul>
+                }
+            </li>
+
+            <li><NavLink href="#"><i class="bi bi-cash-stack"></i> Transaction</NavLink></li>
+            <li><NavLink href="#"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
+            <li><NavLink href="#"><i class="bi bi-person"></i> Profile</NavLink></li>
+            <li><NavLink href="#"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
+            
+
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div>
+                <h4>Welcome, <span class="username">User</span></h4>
+                <p>Here’s a summary of today’s operational status</p>
+            </div>
+            <div class="user-info">
+                <span class="role">Role: N/A</span><br />
+                <span class="company">Company: Kalpaka Organics</span>
+                <img src="images/user.png" class="user-avatar" alt="User Avatar" />
+            </div>
+        </header>
+        <!-- Page Body -->
+        <div class="page-shell">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isMenuOpen = true;
+    private bool isMasterMenuOpen = false;
+
+    private void ToggleMenu()
+    {
+        isMenuOpen = !isMenuOpen;
+    }
+
+    private void ToggleMasterMenu()
+    {
+        isMasterMenuOpen = !isMasterMenuOpen;
+    }
+}
+
+<style>
+    .submenu {
+        list-style: none;
+        padding-left: 30px;
+        margin: 5px 0;
+    }
+
+        .submenu li {
+            margin: 5px 0;
+        }
+
+        .submenu a {
+            font-size: 13px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+        }
+
+            .submenu a i {
+                margin-right: 10px;
+            }
+
+            .submenu a:hover {
+                background-color: #2d4b9e;
+            }
+</style>
