@@ -5,7 +5,8 @@
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
-@inject MyBlazorServerApp.Data.AppDbContext Db
+@using System.Linq
+@inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
 <div class="main-card">
     <div class="header-container">
@@ -35,7 +36,11 @@
             <div class="inner-box">
                 <EditForm Model="customerModel" OnValidSubmit="SaveCustomer">
                     <DataAnnotationsValidator />
-                    <ValidationSummary />
+                    <ValidationSummary class="alert alert-danger" />
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
                     <div class="grid-four">
                         <div class="form-item">
                             <label class="form-label">Customer ID</label>
@@ -77,7 +82,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (filteredCustomers.Count == 0)
+                    @if (filteredCustomers.Count == 0 && !string.IsNullOrEmpty(errorMessage))
+                    {
+                        <tr><td colspan="5" class="text-center">@errorMessage</td></tr>
+                    }
+                    else if (filteredCustomers.Count == 0)
                     {
                         <tr><td colspan="5" class="text-center">No customers found.</td></tr>
                     }
@@ -93,7 +102,7 @@
                                 <td>@customer.Gstin</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="() => EditCustomer(customer)">Edit</button>
-                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteCustomer(customer)">Delete</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteCustomer(DbFactory.CreateDbContext(), customer)">Delete</button>
                                 </td>
                             </tr>
                         }
@@ -123,68 +132,108 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCustomers();
-        ApplyFilter();
-        if (id > 0)
-        {
-            if (NavigationManager.Uri.Contains("/customers/edit/"))
-            {
-                await EditCustomerInitialization();
-            }
-            else if (NavigationManager.Uri.Contains("/customers/delete/"))
-            {
-                await DeleteCustomerInitialization();
-            }
-        }
-    }
-
-    private async Task LoadCustomers()
-    {
         try
         {
-            customers = await Db.Customers.IgnoreQueryFilters().ToListAsync() ?? new List<Customer>();
-            filteredCustomers = customers.Where(c => !c.IsDeleted).ToList();
+            using var db = DbFactory.CreateDbContext();
+            if (db == null)
+            {
+                errorMessage = "Failed to create database context.";
+                return;
+            }
+            await LoadCustomers(db);
+            ApplyFilter();
+            if (id > 0)
+            {
+                if (NavigationManager.Uri.Contains("/customers/edit/"))
+                {
+                    await EditCustomerInitialization(db);
+                }
+                else if (NavigationManager.Uri.Contains("/customers/delete/"))
+                {
+                    await DeleteCustomerInitialization(db);
+                }
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error loading customers: {ex.Message}";
+            errorMessage = $"Initialization error: {ex.Message}";
         }
     }
 
-    private async Task EditCustomerInitialization()
+    private async Task LoadCustomers(AppDbContext db)
     {
-        var customer = await Db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
-        if (customer != null)
+        try
         {
-            editingCustomer = customer;
-            customerModel = new Customer
+            if (db?.Customers != null)
             {
-                Id = customer.Id,
-                Code = customer.Code,
-                Name = customer.Name,
-                Phone = customer.Phone,
-                Gstin = customer.Gstin,
-                IsDeleted = customer.IsDeleted
-            };
-            isFormVisible = true;
+                customers = await db.Customers.IgnoreQueryFilters().ToListAsync() ?? new List<Customer>();
+                filteredCustomers = customers.Where(c => !c.IsDeleted).ToList();
+            }
+            else
+            {
+                errorMessage = "Database context or Customers set is not properly configured.";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Customer not found for editing.";
+            errorMessage = $"Error loading customers: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
 
-    private async Task DeleteCustomerInitialization()
+    private async Task EditCustomerInitialization(AppDbContext db)
     {
-        var customer = await Db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
-        if (customer != null)
+        try
         {
-            editingCustomer = customer;
-            await DeleteCustomer(customer);
+            if (db?.Customers != null)
+            {
+                var customer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+                if (customer != null)
+                {
+                    editingCustomer = customer;
+                    customerModel = new Customer
+                    {
+                        Id = customer.Id,
+                        Code = customer.Code,
+                        Name = customer.Name,
+                        Phone = customer.Phone,
+                        Gstin = customer.Gstin,
+                        IsDeleted = customer.IsDeleted
+                    };
+                    isFormVisible = true;
+                }
+                else
+                {
+                    errorMessage = "Customer not found for editing.";
+                }
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Customer not found for deletion.";
+            errorMessage = $"Error loading customer for editing: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
+        }
+    }
+
+    private async Task DeleteCustomerInitialization(AppDbContext db)
+    {
+        try
+        {
+            if (db?.Customers != null)
+            {
+                var customer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+                if (customer != null)
+                {
+                    editingCustomer = customer;
+                    await DeleteCustomer(db, customer);
+                }
+                else
+                {
+                    errorMessage = "Customer not found for deletion.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading customer for deletion: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
 
@@ -205,52 +254,56 @@
     {
         try
         {
-            if (editingCustomer == null)
+            using var db = DbFactory.CreateDbContext();
+            if (db?.Customers != null)
             {
-                if (string.IsNullOrWhiteSpace(customerModel.Code) || string.IsNullOrWhiteSpace(customerModel.Name))
+                if (editingCustomer == null)
                 {
-                    errorMessage = "Customer ID and Name are required.";
-                    return;
-                }
-                if (await Db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code))
-                {
-                    errorMessage = "Customer ID (Code) must be unique.";
-                    return;
-                }
-                customerModel.Id = 0; // Ensure EF treats this as new
-                customerModel.IsDeleted = false;
-                Db.Customers.Add(customerModel);
-            }
-            else
-            {
-                var existingCustomer = await Db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
-                if (existingCustomer != null)
-                {
-                    if (await Db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code && c.Id != customerModel.Id))
+                    if (string.IsNullOrWhiteSpace(customerModel.Code) || string.IsNullOrWhiteSpace(customerModel.Name))
+                    {
+                        errorMessage = "Customer ID and Name are required.";
+                        return;
+                    }
+                    if (await db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code))
                     {
                         errorMessage = "Customer ID (Code) must be unique.";
                         return;
                     }
-                    existingCustomer.Code = customerModel.Code;
-                    existingCustomer.Name = customerModel.Name;
-                    existingCustomer.Phone = customerModel.Phone;
-                    existingCustomer.Gstin = customerModel.Gstin;
-                    Db.Customers.Update(existingCustomer);
+                    customerModel.Id = 0;
+                    customerModel.IsDeleted = false;
+                    db.Customers.Add(customerModel);
                 }
+                else
+                {
+                    var existingCustomer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
+                    if (existingCustomer != null)
+                    {
+                        if (await db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code && c.Id != customerModel.Id))
+                        {
+                            errorMessage = "Customer ID (Code) must be unique.";
+                            return;
+                        }
+                        existingCustomer.Code = customerModel.Code;
+                        existingCustomer.Name = customerModel.Name;
+                        existingCustomer.Phone = customerModel.Phone;
+                        existingCustomer.Gstin = customerModel.Gstin;
+                        db.Customers.Update(existingCustomer);
+                    }
+                }
+                await db.SaveChangesAsync();
+                errorMessage = "Customer saved successfully.";
+                isFormVisible = false;
+                await LoadCustomers(db);
+                ApplyFilter();
             }
-            await Db.SaveChangesAsync();
-            errorMessage = "";
-            isFormVisible = false;
-            await LoadCustomers();
-            ApplyFilter();
         }
         catch (DbUpdateException ex)
         {
-            errorMessage = $"Database error: {ex.InnerException?.Message ?? ex.Message}";
+            errorMessage = $"Database error: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error saving customer: {ex.Message}";
+            errorMessage = $"Error saving customer: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
 
@@ -270,27 +323,30 @@
         NavigationManager.NavigateTo($"/customers/edit/{customer.Id}");
     }
 
-    private async Task DeleteCustomer(Customer customer)
+    private async Task DeleteCustomer(AppDbContext db, Customer customer)
     {
         try
         {
-            var existingCustomer = await Db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == customer.Id);
-            if (existingCustomer != null)
+            if (db?.Customers != null)
             {
-                existingCustomer.IsDeleted = true;
-                Db.Customers.Update(existingCustomer);
-                await Db.SaveChangesAsync();
-                await LoadCustomers();
-                ApplyFilter();
-                if (NavigationManager.Uri.Contains("/customers/delete/"))
+                var existingCustomer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == customer.Id);
+                if (existingCustomer != null)
                 {
-                    NavigationManager.NavigateTo("/customers");
+                    existingCustomer.IsDeleted = true;
+                    db.Customers.Update(existingCustomer);
+                    await db.SaveChangesAsync();
+                    await LoadCustomers(db);
+                    ApplyFilter();
+                    if (NavigationManager.Uri.Contains("/customers/delete/"))
+                    {
+                        NavigationManager.NavigateTo("/customers");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error deleting customer: {ex.Message}";
+            errorMessage = $"Error deleting customer: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
 
@@ -309,7 +365,7 @@
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
-        currentPage = 1; // Reset to first page on search
+        currentPage = 1;
         ApplyFilter();
     }
 }
@@ -420,5 +476,20 @@
 
     .pagination-info {
         margin-top: 10px;
+    }
+
+    .alert {
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ffeeba;
+        border-radius: 4px;
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
     }
 </style>
