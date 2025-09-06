@@ -95,7 +95,7 @@
                         @for (int i = 0; i < filteredCustomers.Count; i++)
                         {
                             var customer = filteredCustomers[i];
-                            <tr style="@(customer.IsDeleted ? "opacity:0.5;text-decoration:line-through;" : "")">
+                            <tr>
                                 <td>@customer.Code</td>
                                 <td>@customer.Name</td>
                                 <td>@customer.Phone</td>
@@ -129,7 +129,6 @@
     private int currentPage = 1;
     private int pageSize = 5;
     private string errorMessage = "";
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -159,15 +158,14 @@
             errorMessage = $"Initialization error: {ex.Message}";
         }
     }
-
     private async Task LoadCustomers(AppDbContext db)
     {
         try
         {
             if (db?.Customers != null)
             {
-                customers = await db.Customers.IgnoreQueryFilters().ToListAsync() ?? new List<Customer>();
-                filteredCustomers = customers.Where(c => !c.IsDeleted).ToList();
+                customers = await db.Customers.ToListAsync() ?? new List<Customer>(); // Removed IgnoreQueryFilters since we're hard deleting
+                filteredCustomers = customers.Where(c => !c.IsDeleted).ToList(); // This line can be simplified or removed if not needed
             }
             else
             {
@@ -179,14 +177,13 @@
             errorMessage = $"Error loading customers: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
-
     private async Task EditCustomerInitialization(AppDbContext db)
     {
         try
         {
             if (db?.Customers != null)
             {
-                var customer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id); // Removed IgnoreQueryFilters
                 if (customer != null)
                 {
                     editingCustomer = customer;
@@ -212,14 +209,13 @@
             errorMessage = $"Error loading customer for editing: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
-
     private async Task DeleteCustomerInitialization(AppDbContext db)
     {
         try
         {
             if (db?.Customers != null)
             {
-                var customer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id); // Removed IgnoreQueryFilters
                 if (customer != null)
                 {
                     editingCustomer = customer;
@@ -236,20 +232,17 @@
             errorMessage = $"Error loading customer for deletion: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
-
     private void ShowAddForm()
     {
         editingCustomer = null;
         customerModel = new Customer();
         isFormVisible = true;
     }
-
     private void BackToList()
     {
         isFormVisible = false;
         editingCustomer = null;
     }
-
     private async Task SaveCustomer()
     {
         try
@@ -264,21 +257,20 @@
                         errorMessage = "Customer ID and Name are required.";
                         return;
                     }
-                    if (await db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code))
+                    if (await db.Customers.AnyAsync(c => c.Code == customerModel.Code))
                     {
                         errorMessage = "Customer ID (Code) must be unique.";
                         return;
                     }
                     customerModel.Id = 0;
-                    customerModel.IsDeleted = false;
                     db.Customers.Add(customerModel);
                 }
                 else
                 {
-                    var existingCustomer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
+                    var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == editingCustomer.Id); // Removed IgnoreQueryFilters
                     if (existingCustomer != null)
                     {
-                        if (await db.Customers.IgnoreQueryFilters().AnyAsync(c => c.Code == customerModel.Code && c.Id != customerModel.Id))
+                        if (await db.Customers.AnyAsync(c => c.Code == customerModel.Code && c.Id != customerModel.Id))
                         {
                             errorMessage = "Customer ID (Code) must be unique.";
                             return;
@@ -306,7 +298,6 @@
             errorMessage = $"Error saving customer: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
-
     private void EditCustomer(Customer customer)
     {
         editingCustomer = customer;
@@ -322,18 +313,16 @@
         isFormVisible = true;
         NavigationManager.NavigateTo($"/customers/edit/{customer.Id}");
     }
-
     private async Task DeleteCustomer(AppDbContext db, Customer customer)
     {
         try
         {
             if (db?.Customers != null)
             {
-                var existingCustomer = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == customer.Id);
+                var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id); // Removed IgnoreQueryFilters
                 if (existingCustomer != null)
                 {
-                    existingCustomer.IsDeleted = true;
-                    db.Customers.Update(existingCustomer);
+                    db.Customers.Remove(existingCustomer); // Hard delete instead of soft delete
                     await db.SaveChangesAsync();
                     await LoadCustomers(db);
                     ApplyFilter();
@@ -349,7 +338,6 @@
             errorMessage = $"Error deleting customer: {ex.Message}\nInner Exception: {ex.InnerException?.Message}";
         }
     }
-
     private void ApplyFilter()
     {
         filteredCustomers = customers
@@ -361,7 +349,6 @@
             .Take(pageSize)
             .ToList();
     }
-
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
