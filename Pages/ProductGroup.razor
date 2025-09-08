@@ -1,6 +1,329 @@
-﻿namespace MyBlazorServerApp.Pages
-{
-    public class ProductGroup
+﻿@page "/productgroups"
+@using MyBlazorServerApp.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<div class="main-card">
+    <div class="header-container">
+        <h3 class="page-title">Product Groups</h3>
+        <p class="subtitle">Manage your product categories</p>
+        <div class="action-container">
+            <button class="btn btn-primary add-btn" @onclick="ShowAddForm">Add Product Group</button>
+        </div>
+    </div>
+    <div class="customer-table-box">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th style="background-color: #1e3a8a; color: white;">Group Name</th>
+                    <th style="background-color: #1e3a8a; color: white; width:180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (productGroups.Count == 0 && !string.IsNullOrEmpty(errorMessage))
+                {
+                    <tr><td colspan="2" class="text-center">@errorMessage</td></tr>
+                }
+                else if (productGroups.Count == 0)
+                {
+                    <tr><td colspan="2" class="text-center">No product groups found.</td></tr>
+                }
+                else
+                {
+                    @foreach (var group in productGroups)
+                    {
+                        <tr>
+                            <td>@group.Name</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm me-1" @onclick="() => EditGroup(group)">Edit</button>
+                                <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (isFormVisible)
     {
+        <div class="add-card">
+            <div class="inner-box">
+                <EditForm Model="groupModel" OnValidSubmit="SaveGroup">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <div class="form-item">
+                        <label class="form-label">Group Name</label>
+                        <InputText class="form-control" @bind-Value="groupModel.Name" />
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success" style="background-color:#1e3a8a; color:white;">
+                            @(editingGroup == null ? "Save Group" : "Update Group")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<MyBlazorServerApp.Models.ProductGroup> productGroups = new();
+    private MyBlazorServerApp.Models.ProductGroup groupModel = new();
+    private MyBlazorServerApp.Models.ProductGroup? editingGroup;
+    private bool isFormVisible = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (db == null)
+            {
+                errorMessage = "Failed to create database context. Please check the configuration.";
+                return;
+            }
+            if (db.ProductGroups == null)
+            {
+                errorMessage = "ProductGroups DbSet is not configured in AppDbContext.";
+                return;
+            }
+            await LoadGroups(db);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Initialization error: {ex.Message}";
+            Console.WriteLine($"Detailed error: {ex.ToString()}");
+        }
+    }
+
+    private async Task LoadGroups(AppDbContext db)
+    {
+        try
+        {
+            productGroups = await db.ProductGroups.ToListAsync() ?? new List<MyBlazorServerApp.Models.ProductGroup>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading product groups: {ex.Message}";
+            Console.WriteLine($"Detailed error: {ex.ToString()}");
+        }
+    }
+
+    private void ShowAddForm()
+    {
+        editingGroup = null;
+        groupModel = new MyBlazorServerApp.Models.ProductGroup();
+        isFormVisible = true;
+    }
+
+    private void BackToList()
+    {
+        isFormVisible = false;
+        editingGroup = null;
+    }
+
+    private async Task SaveGroup()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (db?.ProductGroups == null)
+            {
+                errorMessage = "Database context or ProductGroups set is not configured.";
+                return;
+            }
+            if (editingGroup == null)
+            {
+                if (string.IsNullOrWhiteSpace(groupModel.Name))
+                {
+                    errorMessage = "Group Name is required.";
+                    return;
+                }
+                if (await db.ProductGroups.AnyAsync(g => g.Name == groupModel.Name))
+                {
+                    errorMessage = "Group Name must be unique.";
+                    return;
+                }
+                db.ProductGroups.Add(groupModel);
+            }
+            else
+            {
+                var existingGroup = await db.ProductGroups.FirstOrDefaultAsync(g => g.Id == editingGroup.Id);
+                if (existingGroup != null)
+                {
+                    if (await db.ProductGroups.AnyAsync(g => g.Name == groupModel.Name && g.Id != groupModel.Id))
+                    {
+                        errorMessage = "Group Name must be unique.";
+                        return;
+                    }
+                    existingGroup.Name = groupModel.Name;
+                    db.ProductGroups.Update(existingGroup);
+                }
+            }
+            await db.SaveChangesAsync();
+            errorMessage = "Product group saved successfully.";
+            isFormVisible = false;
+            await LoadGroups(db);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving product group: {ex.Message}";
+            Console.WriteLine($"Detailed error: {ex.ToString()}");
+        }
+    }
+
+    private void EditGroup(MyBlazorServerApp.Models.ProductGroup group)
+    {
+        editingGroup = group;
+        groupModel = new MyBlazorServerApp.Models.ProductGroup
+        {
+            Id = group.Id,
+            Name = group.Name
+        };
+        isFormVisible = true;
+    }
+
+    private async Task DeleteGroup(MyBlazorServerApp.Models.ProductGroup group)
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (db?.ProductGroups != null)
+            {
+                var existingGroup = await db.ProductGroups.FirstOrDefaultAsync(g => g.Id == group.Id);
+                if (existingGroup != null)
+                {
+                    db.ProductGroups.Remove(existingGroup);
+                    await db.SaveChangesAsync();
+                    await LoadGroups(db);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting product group: {ex.Message}";
+            Console.WriteLine($"Detailed error: {ex.ToString()}");
+        }
     }
 }
+
+<style>
+    .main-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .header-container {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        color: #1e3a8a;
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+        color: #1d3557;
+        margin-bottom: 15px;
+    }
+
+    .action-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+
+    .btn-warning {
+        background-color: #ADD8E6;
+        color: darkblue;
+        border: none;
+    }
+
+    .btn-danger {
+        background-color: #FFCCCC;
+        color: darkred;
+        border: none;
+    }
+
+    .add-card {
+        background: #e0e2ea;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 20px auto;
+        width: 90%;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+
+    .form-control {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .form-actions {
+        margin-top: 16px;
+        text-align: right;
+    }
+
+    .customer-table-box {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th, .table-custom td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+    .alert {
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ffeeba;
+        border-radius: 4px;
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+</style>

@@ -3,7 +3,7 @@ using MyBlazorServerApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ Register EF Core with DbContextFactory (best for Blazor Server)
+// Register EF Core with DbContextFactory (best for Blazor Server)
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
@@ -31,6 +31,14 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+// Ensure the database is created on startup (for development/testing)
+using (var scope = app.Services.CreateScope())
+{
+    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    using var db = dbFactory.CreateDbContext();
+    db.Database.EnsureCreated(); // Creates the database and tables if they don't exist
+}
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
