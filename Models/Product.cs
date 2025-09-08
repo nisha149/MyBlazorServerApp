@@ -7,7 +7,7 @@ namespace MyBlazorServerApp.Models
         public int Id { get; set; }
         [Required]
         public string Name { get; set; } = string.Empty;
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
         public string HsnCode { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
         public decimal NextPurchaseRate { get; set; }

@@ -1,7 +1,9 @@
 ﻿@page "/products"
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.JSInterop
+@using MyBlazorServerApp.Models
 @inject IJSRuntime JSRuntime
+@inject IDbContextFactory<AppDbContext> DbFactory
 <div class="main-card">
     <div class="header-container">
         @if (!isFormVisible)
@@ -35,7 +37,13 @@
                         <!-- Row 1 -->
                         <div class="form-item">
                             <label class="form-label">Category</label>
-                            <InputText class="form-control" @bind-Value="productModel.Category" />
+                            <InputSelect class="form-control" @bind-Value="productModel.CategoryId">
+                                <option value="">Select a category</option>
+                                @foreach (var group in productGroups)
+                                {
+                                    <option value="@group.Id">@group.Name</option>
+                                }
+                            </InputSelect>
                         </div>
                         <div class="form-item">
                             <label class="form-label">Product ID</label>
@@ -128,7 +136,7 @@
                             <tr>
                                 <td>@product.Id</td>
                                 <td>@product.Name</td>
-                                <td>@product.Category</td>
+                                <td>@(product.ProductGroup?.Name ?? "N/A")</td>
                                 <td>@product.Unit</td>
                                 <td>₹@product.RetailRate</td>
                                 <td>
@@ -150,10 +158,11 @@
     }
 </div>
 @code {
-    private List<Product> products = new();
-    private List<Product> filteredProducts = new();
-    private Product productModel = new();
-    private Product? editingProduct;
+    private List<Models.Product> products = new();
+    private List<Models.Product> filteredProducts = new();
+    private List<Models.ProductGroup> productGroups = new();
+    private Models.Product productModel = new();
+    private Models.Product? editingProduct;
     private bool isFormVisible = false;
     private string searchText = string.Empty;
     private int currentPage = 1;
@@ -162,6 +171,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadProducts();
+        await LoadProductGroups();
         ApplyFilter();
     }
 
@@ -169,10 +179,10 @@
     {
         try
         {
-            var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "products");
-            if (!string.IsNullOrEmpty(json))
+            using var db = DbFactory.CreateDbContext();
+            if (db != null)
             {
-                products = System.Text.Json.JsonSerializer.Deserialize<List<Product>>(json) ?? new List<Product>();
+                products = await db.Products.Include(p => p.ProductGroup).ToListAsync() ?? new List<Models.Product>();
             }
         }
         catch (Exception ex)
@@ -181,10 +191,26 @@
         }
     }
 
+    private async Task LoadProductGroups()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (db != null)
+            {
+                productGroups = await db.ProductGroups.ToListAsync() ?? new List<Models.ProductGroup>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading product groups: {ex.Message}");
+        }
+    }
+
     private void ShowAddForm()
     {
         editingProduct = null;
-        productModel = new Product();
+        productModel = new Models.Product();
         isFormVisible = true;
     }
 
@@ -196,39 +222,63 @@
 
     private async Task SaveProduct()
     {
-        if (editingProduct == null)
+        try
         {
-            productModel.Id = products.Count > 0 ? products.Max(p => p.Id) + 1 : 1;
-            products.Add(productModel);
+            using var db = DbFactory.CreateDbContext();
+            if (db != null)
+            {
+                if (editingProduct == null)
+                {
+                    // New product
+                    // Let the database handle Id generation if it's an IDENTITY column
+                    if (productModel.CategoryId.HasValue && !productGroups.Any(g => g.Id == productModel.CategoryId.Value))
+                    {
+                        Console.WriteLine("Invalid CategoryId selected.");
+                        return; // Prevent saving with invalid CategoryId
+                    }
+                    db.Products.Add(productModel); // Add without manual Id assignment
+                }
+                else
+                {
+                    // Edit existing product
+                    var existingProduct = await db.Products.FindAsync(editingProduct.Id);
+                    if (existingProduct != null)
+                    {
+                        existingProduct.Name = productModel.Name;
+                        existingProduct.CategoryId = productModel.CategoryId;
+                        existingProduct.HsnCode = productModel.HsnCode;
+                        existingProduct.Unit = productModel.Unit;
+                        existingProduct.NextPurchaseRate = productModel.NextPurchaseRate;
+                        existingProduct.GstPercentage = productModel.GstPercentage;
+                        existingProduct.StockQuantity = productModel.StockQuantity;
+                        existingProduct.Mrp = productModel.Mrp;
+                        existingProduct.DiscountPercentage = productModel.DiscountPercentage;
+                        existingProduct.RetailRate = productModel.RetailRate;
+                        existingProduct.ReorderLevel = productModel.ReorderLevel;
+                    }
+                }
+                await db.SaveChangesAsync();
+                Console.WriteLine("Product saved successfully.");
+                isFormVisible = false;
+                await LoadProducts();
+                ApplyFilter();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            var existingProduct = products.First(p => p.Id == editingProduct.Id);
-            existingProduct.Name = productModel.Name;
-            existingProduct.Category = productModel.Category;
-            existingProduct.HsnCode = productModel.HsnCode;
-            existingProduct.Unit = productModel.Unit;
-            existingProduct.NextPurchaseRate = productModel.NextPurchaseRate;
-            existingProduct.GstPercentage = productModel.GstPercentage;
-            existingProduct.StockQuantity = productModel.StockQuantity;
-            existingProduct.Mrp = productModel.Mrp;
-            existingProduct.DiscountPercentage = productModel.DiscountPercentage;
-            existingProduct.RetailRate = productModel.RetailRate;
-            existingProduct.ReorderLevel = productModel.ReorderLevel;
+            Console.WriteLine($"Error saving product: {ex.Message}");
+            // Optionally, display an error to the user (e.g., via IJSRuntime or a message component)
         }
-        isFormVisible = false;
-        ApplyFilter();
-        await SaveProducts();
     }
 
-    private void EditProduct(Product product)
+    private void EditProduct(Models.Product product)
     {
         editingProduct = product;
-        productModel = new Product
+        productModel = new Models.Product
         {
             Id = product.Id,
             Name = product.Name,
-            Category = product.Category,
+            CategoryId = product.CategoryId,
             HsnCode = product.HsnCode,
             Unit = product.Unit,
             NextPurchaseRate = product.NextPurchaseRate,
@@ -242,11 +292,20 @@
         isFormVisible = true;
     }
 
-    private async Task DeleteProduct(Product product)
+    private async Task DeleteProduct(Models.Product product)
     {
-        products.Remove(product);
+        using var db = DbFactory.CreateDbContext();
+        if (db != null)
+        {
+            var existingProduct = await db.Products.FindAsync(product.Id);
+            if (existingProduct != null)
+            {
+                db.Products.Remove(existingProduct);
+                await db.SaveChangesAsync();
+            }
+        }
+        await LoadProducts();
         ApplyFilter();
-        await SaveProducts();
     }
 
     private void ApplyFilter()
@@ -263,36 +322,6 @@
         searchText = e.Value?.ToString() ?? string.Empty;
         currentPage = 1; // Reset to first page on search
         ApplyFilter();
-    }
-
-    private async Task SaveProducts()
-    {
-        try
-        {
-            var json = System.Text.Json.JsonSerializer.Serialize(products);
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "products", json);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving products: {ex.Message}");
-        }
-    }
-
-    public class Product
-    {
-        public int Id { get; set; }
-        [Required]
-        public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string HsnCode { get; set; } = string.Empty;
-        public string Unit { get; set; } = string.Empty;
-        public decimal NextPurchaseRate { get; set; }
-        public decimal GstPercentage { get; set; }
-        public int StockQuantity { get; set; }
-        public decimal Mrp { get; set; }
-        public decimal DiscountPercentage { get; set; }
-        public decimal RetailRate { get; set; }
-        public int ReorderLevel { get; set; }
     }
 }
 <style>
