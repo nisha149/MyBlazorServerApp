@@ -13,7 +13,6 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </NavLink>
             </li>
-
             <!-- Master with submenu -->
             <li>
                 <a href="javascript:void(0)" @onclick="ToggleMasterMenu">
@@ -35,16 +34,48 @@
                     </ul>
                 }
             </li>
-
-            <li><NavLink href="#"><i class="bi bi-cash-stack"></i> Transaction</NavLink></li>
+            <!-- Transaction with submenu -->
+            <li>
+                <a href="javascript:void(0)" @onclick="ToggleTransactionMenu">
+                    <i class="bi bi-cash-stack"></i> Transaction
+                </a>
+                @if (isTransactionMenuOpen)
+                {
+                    <ul class="submenu">
+                        <li>
+                            <a href="javascript:void(0)" @onclick="TogglePurchaseMenu">
+                                <i class="bi bi-cart-plus"></i> Purchase
+                            </a>
+                            @if (isPurchaseMenuOpen)
+                            {
+                                <ul class="submenu">
+                                    <li><NavLink href="/purchaseorder" class="menu-item"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
+                                    <li><NavLink href="/purchaseinvoice" class="menu-item"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
+                                    <li><NavLink href="/purchasereturn" class="menu-item"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
+                                    <li><NavLink href="/paymentout" class="menu-item"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
+                                </ul>
+                            }
+                        </li>
+                        <li>
+                            <a href="javascript:void(0)" @onclick="ToggleSalesMenu">
+                                <i class="bi bi-cart-check"></i> Sales
+                            </a>
+                            @if (isSalesMenuOpen)
+                            {
+                                <ul class="submenu">
+                                    <!-- Add Sales sub-options here later -->
+                                    <li><NavLink href="#">Placeholder</NavLink></li>
+                                </ul>
+                            }
+                        </li>
+                    </ul>
+                }
+            </li>
             <li><NavLink href="#"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
             <li><NavLink href="#"><i class="bi bi-person"></i> Profile</NavLink></li>
             <li><NavLink href="#"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
-            
-
         </ul>
     </nav>
-
     <!-- Main Content -->
     <div class="main-content">
         <!-- Top Bar -->
@@ -65,22 +96,33 @@
         </div>
     </div>
 </div>
-
 @code {
     private bool isMenuOpen = true;
     private bool isMasterMenuOpen = false;
-
+    private bool isTransactionMenuOpen = false;
+    private bool isPurchaseMenuOpen = false;
+    private bool isSalesMenuOpen = false;
     private void ToggleMenu()
     {
         isMenuOpen = !isMenuOpen;
     }
-
     private void ToggleMasterMenu()
     {
         isMasterMenuOpen = !isMasterMenuOpen;
     }
+    private void ToggleTransactionMenu()
+    {
+        isTransactionMenuOpen = !isTransactionMenuOpen;
+    }
+    private void TogglePurchaseMenu()
+    {
+        isPurchaseMenuOpen = !isPurchaseMenuOpen;
+    }
+    private void ToggleSalesMenu()
+    {
+        isSalesMenuOpen = !isSalesMenuOpen;
+    }
 }
-
 <style>
     .submenu {
         list-style: none;
@@ -108,4 +150,18 @@
             .submenu a:hover {
                 background-color: #2d4b9e;
             }
+        /* Ensure nested submenus align properly */
+        .submenu .submenu {
+            padding-left: 20px;
+        }
+    /* Style menu items as single-line labels */
+    .menu-item {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+        .menu-item i {
+            margin-right: 10px;
+        }
 </style>
