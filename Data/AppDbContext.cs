@@ -11,10 +11,10 @@ namespace MyBlazorServerApp.Data
         public virtual DbSet<ProductGroup> ProductGroups { get; set; }
         public virtual DbSet<Product> Products { get; set; }
         public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+        public virtual DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Customer configuration
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.HasKey(c => c.Id);
@@ -26,14 +26,12 @@ namespace MyBlazorServerApp.Data
                 entity.Property(c => c.IsDeleted).HasDefaultValue(false);
             });
 
-            // ProductGroup configuration
             modelBuilder.Entity<ProductGroup>(entity =>
             {
                 entity.HasKey(pg => pg.Id);
                 entity.Property(pg => pg.Name).HasMaxLength(100).IsRequired();
             });
 
-            // Product configuration
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(p => p.Id);
@@ -49,7 +47,6 @@ namespace MyBlazorServerApp.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // PurchaseOrder configuration
             modelBuilder.Entity<PurchaseOrder>(entity =>
             {
                 entity.HasKey(po => po.Id);
@@ -59,8 +56,29 @@ namespace MyBlazorServerApp.Data
                 entity.Property(po => po.ExpectedDelivery).HasDefaultValueSql("DATEADD(day, 7, GETDATE())");
                 entity.Property(po => po.TotalAmount).HasPrecision(18, 4);
                 entity.Property(po => po.Status).HasMaxLength(50).IsRequired();
+                entity.Property(po => po.Remarks).HasMaxLength(500);
+                entity.HasMany(po => po.Items)
+                    .WithOne(poi => poi.PurchaseOrder)
+                    .HasForeignKey(poi => poi.PurchaseOrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<PurchaseOrderItem>(entity =>
+            {
+                entity.HasKey(poi => poi.Id);
+                entity.Property(poi => poi.ProductId).HasMaxLength(36).IsRequired();
+                entity.Property(poi => poi.ProductName).HasMaxLength(100).IsRequired();
+                entity.Property(poi => poi.Category).HasMaxLength(100).IsRequired();
+                entity.Property(poi => poi.TaxMode).HasMaxLength(50).IsRequired();
+                entity.Property(poi => poi.Quantity).HasPrecision(18, 4).IsRequired(false);
+                entity.Property(poi => poi.Rate).HasPrecision(18, 4).IsRequired(false);
+                entity.Property(poi => poi.DiscountPercent).HasPrecision(18, 4).IsRequired(false);
+                entity.Property(poi => poi.GSTPercent).HasPrecision(18, 4).IsRequired(false);
+                entity.Property(poi => poi.LineTotal).HasPrecision(18, 4).IsRequired(false);
+                entity.HasOne(poi => poi.PurchaseOrder)
+                    .WithMany(po => po.Items)
+                    .HasForeignKey(poi => poi.PurchaseOrderId);
+            });
         }
     }
 }
