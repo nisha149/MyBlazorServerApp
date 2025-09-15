@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyBlazorServerApp.Data;
 
@@ -11,9 +12,11 @@ using MyBlazorServerApp.Data;
 namespace MyBlazorServerApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915073133_UpdatePurchaseOrderModel_20250915_2")]
+    partial class UpdatePurchaseOrderModel_20250915_2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,8 +79,7 @@ namespace MyBlazorServerApp.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("GstPercentage")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("HsnCode")
                         .IsRequired()
@@ -85,8 +87,7 @@ namespace MyBlazorServerApp.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal>("Mrp")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Name")
                         .IsRequired()

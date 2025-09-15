@@ -1,9 +1,7 @@
 ﻿@page "/purchaseorder"
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.JSInterop
 @inject IDbContextFactory<AppDbContext> DbFactory
-@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 
 <div class="main-card">
@@ -18,6 +16,7 @@
             <button class="btn btn-primary" @onclick="ShowAddForm">Add New PO</button>
         </div>
     </div>
+    @* FORM / ADD *@
     @if (isFormVisible)
     {
         <div class="form-container">
@@ -113,6 +112,7 @@
                                         <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
                                         Inclusive
                                     </label>
+
                                 </div>
                             </div>
                         </div>
@@ -123,15 +123,15 @@
                             <table class="table table-custom">
                                 <thead>
                                     <tr>
-                                        <th style="background-color: #1e3a8a; color: white;">Product ID</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Product Name</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Quantity</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Rate</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Disc %</th>
-                                        <th style="background-color: #1e3a8a; color: white;">GST %</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Line Total</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Tax Mode</th>
-                                        <th style="background-color: #1e3a8a; color: white;">Actions</th>
+                                        <th>Product ID</th>
+                                        <th>Product Name</th>
+                                        <th>Quantity</th>
+                                        <th>Rate</th>
+                                        <th>Disc %</th>
+                                        <th>GST %</th>
+                                        <th>Line Total</th>
+                                        <th>Tax Mode</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -141,10 +141,10 @@
                                             <td>@item.ProductId</td>
                                             <td>@item.ProductName</td>
                                             <td>@item.Quantity</td>
-                                            <td>@item.Rate</td>
-                                            <td>@item.DiscountPercent</td>
-                                            <td>@item.GSTPercent</td>
-                                            <td>@item.LineTotal</td>
+                                            <td>@(item.Rate.HasValue ? item.Rate.Value.ToString("C") : "N/A")</td>
+                                            <td>@(item.DiscountPercent.HasValue ? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.GSTPercent.HasValue ? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.LineTotal.HasValue ? item.LineTotal.Value.ToString("C") : "N/A")</td>
                                             <td>@item.TaxMode</td>
                                             <td>
                                                 <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
@@ -160,7 +160,7 @@
                                 <InputNumber class="form-control" @bind-Value="purchaseOrderModel.TotalAmount" readonly />
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary" style="background-color:#1e3a8a;color:white;">
+                                <button type="submit" class="btn btn-primary">
                                     Save Purchase Order
                                 </button>
                             </div>
@@ -170,19 +170,20 @@
             </div>
         </div>
     }
+    @* LIST VIEW *@
     @if (!isFormVisible)
     {
         <div class="product-table-box">
             <table class="table table-custom">
                 <thead>
                     <tr>
-                        <th style="background-color: #1e3a8a; color: white;">PO ID</th>
-                        <th style="background-color: #1e3a8a; color: white;">SUPPLIER NAME</th>
-                        <th style="background-color: #1e3a8a; color: white;">ORDER DATE</th>
-                        <th style="background-color: #1e3a8a; color: white;">EXPECTED DELIVERY</th>
-                        <th style="background-color: #1e3a8a; color: white;">TOTAL AMOUNT</th>
-                        <th style="background-color: #1e3a8a; color: white;">STATUS</th>
-                        <th style="background-color: #1e3a8a; color: white; width:180px;">ACTIONS</th>
+                        <th>PO ID</th>
+                        <th>Supplier Name</th>
+                        <th>Order Date</th>
+                        <th>Expected Delivery</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th style="width:180px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -197,31 +198,28 @@
                             <tr>
                                 <td>@po.POId</td>
                                 <td>@po.SupplierName</td>
-                                <td>@po.OrderDate.ToShortDateString()</td>
-                                <td>@po.ExpectedDelivery.ToShortDateString()</td>
-                                <td>@po.TotalAmount.ToString("C")</td>
+                                <td>@(po.OrderDate.HasValue ? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(po.ExpectedDelivery.HasValue ? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(po.TotalAmount.HasValue ? po.TotalAmount.Value.ToString("C") : "N/A")</td>
                                 <td>@po.Status</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="() => EditPurchaseOrder(po)"><i class="oi oi-pencil"></i></button>
                                     <button class="btn btn-danger btn-sm me-1" @onclick="() => DeletePurchaseOrder(po)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseOrder(po)"><i class="oi oi-print"></i></button>
+                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseOrder(po)">
+                                        <i class="oi oi-print"></i>
+                                    </button>
                                 </td>
                             </tr>
                         }
                     }
                 </tbody>
             </table>
-            @if (filteredPurchaseOrders.Count > 0)
-            {
-                <div class="pagination-info" style="text-align: right; padding: 10px; color: #1d3557; font-size: 14px;">
-                    @($"Showing {((currentPage - 1) * pageSize + 1)}-{Math.Min(currentPage * pageSize, purchaseOrders.Count)} of {purchaseOrders.Count} purchase orders")
-                </div>
-            }
         </div>
     }
 </div>
 
 @code {
+    // Use fully-qualified model type to avoid naming conflicts with page class
     private List<MyBlazorServerApp.Models.PurchaseOrder> purchaseOrders = new();
     private List<MyBlazorServerApp.Models.PurchaseOrder> filteredPurchaseOrders = new();
     private MyBlazorServerApp.Models.PurchaseOrder purchaseOrderModel = new();
@@ -231,7 +229,7 @@
     private int currentPage = 1;
     private int pageSize = 5;
     private string? errorMessage;
-    private MyBlazorServerApp.Models.PurchaseOrderItem newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
+    private MyBlazorServerApp.Models.PurchaseOrderItem newItem = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -244,11 +242,8 @@
         try
         {
             using var db = DbFactory.CreateDbContext();
-            if (db != null)
-            {
-                purchaseOrders = await db.PurchaseOrders.Include(p => p.Items).ToListAsync() ?? new List<MyBlazorServerApp.Models.PurchaseOrder>();
-                filteredPurchaseOrders = purchaseOrders.ToList();
-            }
+            purchaseOrders = await db.PurchaseOrders.Include(p => p.Items).ToListAsync();
+            filteredPurchaseOrders = purchaseOrders.ToList();
         }
         catch (Exception ex)
         {
@@ -278,56 +273,33 @@
         try
         {
             using var db = DbFactory.CreateDbContext();
-            if (db != null)
+            if (editingPurchaseOrder == null)
             {
-                if (string.IsNullOrEmpty(purchaseOrderModel.POId) || string.IsNullOrEmpty(purchaseOrderModel.SupplierName))
-                {
-                    errorMessage = "PO ID and Supplier Name are required.";
-                    return;
-                }
-
-                if (editingPurchaseOrder == null)
-                {
-                    if (await db.PurchaseOrders.AnyAsync(po => po.POId == purchaseOrderModel.POId))
-                    {
-                        errorMessage = "A purchase order with this PO ID already exists.";
-                        return;
-                    }
-                    db.PurchaseOrders.Add(purchaseOrderModel);
-                }
-                else
-                {
-                    var existingPO = await db.PurchaseOrders.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseOrder.Id);
-                    if (existingPO != null)
-                    {
-                        existingPO.POId = purchaseOrderModel.POId;
-                        existingPO.SupplierName = purchaseOrderModel.SupplierName;
-                        existingPO.OrderDate = purchaseOrderModel.OrderDate;
-                        existingPO.ExpectedDelivery = purchaseOrderModel.ExpectedDelivery;
-                        existingPO.TotalAmount = purchaseOrderModel.TotalAmount;
-                        existingPO.Status = purchaseOrderModel.Status;
-                        existingPO.Remarks = purchaseOrderModel.Remarks;
-                        if (purchaseOrderModel.Items != null)
-                        {
-                            existingPO.Items = purchaseOrderModel.Items;
-                            foreach (var item in existingPO.Items)
-                            {
-                                db.Entry(item).State = EntityState.Modified;
-                            }
-                        }
-                        db.PurchaseOrders.Update(existingPO);
-                    }
-                }
-                await db.SaveChangesAsync();
-                isFormVisible = false;
-                await LoadPurchaseOrders();
-                ApplyFilter();
-                errorMessage = null;
+                db.PurchaseOrders.Add(purchaseOrderModel);
             }
+            else
+            {
+                var existingPO = await db.PurchaseOrders.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseOrder.Id);
+                if (existingPO != null)
+                {
+                    existingPO.POId = purchaseOrderModel.POId;
+                    existingPO.SupplierName = purchaseOrderModel.SupplierName;
+                    existingPO.OrderDate = purchaseOrderModel.OrderDate;
+                    existingPO.ExpectedDelivery = purchaseOrderModel.ExpectedDelivery;
+                    existingPO.TotalAmount = purchaseOrderModel.TotalAmount;
+                    existingPO.Status = purchaseOrderModel.Status;
+                    existingPO.Remarks = purchaseOrderModel.Remarks;
+                    existingPO.Items = purchaseOrderModel.Items;
+                }
+            }
+            await db.SaveChangesAsync();
+            isFormVisible = false;
+            await LoadPurchaseOrders();
+            ApplyFilter();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error saving purchase order: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
+            errorMessage = $"Error saving purchase order: {ex.Message}";
             Console.WriteLine(errorMessage);
         }
     }
@@ -345,7 +317,7 @@
             TotalAmount = po.TotalAmount,
             Status = po.Status,
             Remarks = po.Remarks,
-            Items = po.Items != null ? po.Items.ToList() : new List<MyBlazorServerApp.Models.PurchaseOrderItem>()
+            Items = po.Items?.ToList() ?? new()
         };
         newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
         isFormVisible = true;
@@ -357,17 +329,13 @@
         try
         {
             using var db = DbFactory.CreateDbContext();
-            if (db != null)
+            var existingPO = await db.PurchaseOrders.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == po.Id);
+            if (existingPO != null)
             {
-                var existingPO = await db.PurchaseOrders.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == po.Id);
-                if (existingPO != null)
-                {
-                    db.PurchaseOrders.Remove(existingPO);
-                    await db.SaveChangesAsync();
-                    await LoadPurchaseOrders();
-                    ApplyFilter();
-                    errorMessage = null;
-                }
+                db.PurchaseOrders.Remove(existingPO);
+                await db.SaveChangesAsync();
+                await LoadPurchaseOrders();
+                ApplyFilter();
             }
         }
         catch (Exception ex)
@@ -377,9 +345,9 @@
         }
     }
 
-    private async Task PrintPurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
+    private void PrintPurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
     {
-        await JSRuntime.InvokeVoidAsync("window.print");
+        NavigationManager.NavigateTo($"/purchaseorder/print/{po.Id}");
     }
 
     private void ApplyFilter()
@@ -401,7 +369,7 @@
     private void AddItem()
     {
         if (purchaseOrderModel.Items == null) purchaseOrderModel.Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>();
-        newItem.LineTotal = CalculateLineTotal(newItem); // Recalculate LineTotal
+        newItem.LineTotal = CalculateLineTotal(newItem);
         purchaseOrderModel.Items.Add(new MyBlazorServerApp.Models.PurchaseOrderItem
         {
             ProductId = Guid.NewGuid().ToString(),
@@ -420,42 +388,35 @@
 
     private void RemoveItem(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
-        if (purchaseOrderModel.Items != null)
-        {
-            purchaseOrderModel.Items.Remove(item);
-            UpdateTotalAmount();
-        }
+        purchaseOrderModel.Items?.Remove(item);
+        UpdateTotalAmount();
     }
 
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         if (item.Quantity == null || item.Rate == null) return 0;
         decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
-        decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100;
+        decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
         decimal taxableAmount = baseAmount - discount;
         if (item.TaxMode == "Line Inclusive")
         {
-            decimal gst = taxableAmount - (taxableAmount / (1 + (decimal)(item.GSTPercent ?? 0) / 100));
             return taxableAmount;
         }
         else
         {
-            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100;
+            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m;
             return taxableAmount + gst;
         }
     }
 
     private void UpdateTotalAmount()
     {
-        if (purchaseOrderModel.Items != null)
-        {
-            purchaseOrderModel.TotalAmount = purchaseOrderModel.Items.Sum(i => i.LineTotal ?? 0);
-        }
+        purchaseOrderModel.TotalAmount = purchaseOrderModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
     }
 
     private void OnTaxModeChange(ChangeEventArgs e)
     {
-        newItem.TaxMode = e.Value.ToString();
+        newItem.TaxMode = e.Value?.ToString();
         UpdateLineTotal();
     }
 
@@ -464,160 +425,3 @@
         newItem.LineTotal = CalculateLineTotal(newItem);
     }
 }
-
-<style>
-    .main-card {
-        background: #ffffff;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .header-container {
-        margin-bottom: 20px;
-    }
-
-    .page-title {
-        font-size: 24px;
-        color: #1e3a8a;
-        margin-bottom: 10px;
-    }
-
-    .subtitle {
-        font-size: 16px;
-        color: #1d3557;
-        margin-bottom: 15px;
-    }
-
-    .action-container {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-    }
-
-    .search-bar .form-control {
-        width: 200px;
-        padding: 5px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    .btn-primary {
-        background-color: #1e3a8a;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-    }
-
-    .btn-warning {
-        background-color: #ADD8E6;
-        color: darkblue;
-        border: none;
-    }
-
-    .btn-danger {
-        background-color: #FFCCCC;
-        color: darkred;
-        border: none;
-    }
-
-    .btn-info {
-        background-color: #00BFFF;
-        color: darkblue;
-        border: none;
-    }
-
-    .add-card {
-        background: #e0e2ea;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin: 20px auto;
-        max-width: 1200px;
-        width: 100%;
-    }
-
-    .form-container {
-        width: 100%;
-    }
-
-    .form-header {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 15px;
-    }
-
-    .section-title {
-        font-size: 20px;
-        color: #1e3a8a;
-        margin-bottom: 10px;
-    }
-
-    .grid-three {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    .grid-two {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    .form-item {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .form-actions {
-        margin-top: 16px;
-        text-align: right;
-    }
-
-    .full-width {
-        width: 100%;
-    }
-
-    .radio-group {
-        display: flex;
-        gap: 20px;
-    }
-
-    .radio-input {
-        margin-right: 5px;
-    }
-
-    .items-table {
-        margin-top: 20px;
-    }
-
-    .table-custom {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .table-custom th {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .table-custom td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-    .summary {
-        margin-top: 20px;
-    }
-
-    .pagination-info {
-        margin-top: 10px;
-    }
-</style>

@@ -1,1 +1,413 @@
-﻿
+﻿@page "/supplier"
+@using MyBlazorServerApp.Data
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using Microsoft.Extensions.Logging
+@using SupplierModel = MyBlazorServerApp.Models.Supplier
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject ILogger<MyBlazorServerApp.Pages.Supplier> Logger
+
+<div class="main-card">
+    <div class="header-container">
+        @if (!showForm)
+        {
+            <h3 class="page-title">Supplier</h3>
+            <p class="subtitle">Manage all your supplier records</p>
+            <div class="action-container">
+                <div class="search-bar">
+                    <InputText class="form-control" @bind-Value="searchTerm" placeholder="Search suppliers..." @oninput="OnSearchInput" />
+                </div>
+                <button class="btn btn-primary search-btn" @onclick="ApplyFilter">Search</button>
+                <button class="btn btn-primary add-btn" @onclick="ToggleForm">Add Supplier</button>
+            </div>
+        }
+        else
+        {
+            <div class="form-header">
+                <h2 class="page-title">@(editSupplier == null ? "Add New Supplier" : "Edit Supplier")</h2>
+                <button class="btn btn-primary" @onclick="BackToList">View All Suppliers</button>
+            </div>
+        }
+    </div>
+    @if (showForm)
+    {
+        <div class="add-card">
+            <div class="inner-box">
+                <EditForm Model="currentSupplier" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <div class="grid-four">
+                        <div class="form-item">
+                            <label class="form-label">Supplier ID</label>
+                            <InputText class="form-control" @bind-Value="currentSupplier.SupplierId" disabled="@(editSupplier != null)" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Supplier Name</label>
+                            <InputText class="form-control" @bind-Value="currentSupplier.Name" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Phone Number</label>
+                            <InputText class="form-control" @bind-Value="currentSupplier.Phone" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Email ID</label>
+                            <InputText class="form-control" @bind-Value="currentSupplier.Email" />
+                        </div>
+                    </div>
+                    <div class="grid-two">
+                        <div class="form-item">
+                            <label class="form-label">Address</label>
+                            <InputTextArea class="form-control" @bind-Value="currentSupplier.Address" rows="3" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Notes</label>
+                            <InputTextArea class="form-control" @bind-Value="currentSupplier.Notes" rows="2" />
+                        </div>
+                    </div>
+                    <div class="grid-two">
+                        <div class="form-item">
+                            <label class="form-label">Status</label>
+                            <InputSelect class="form-control" @bind-Value="currentSupplier.Status">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </InputSelect>
+                        </div>
+                        <div class="form-item"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success" style="background-color:#1e3a8a;color:white;">
+                            @(editSupplier == null ? "Save Supplier" : "Update Supplier")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+    @if (!showForm)
+    {
+        <div class="customer-table-box">
+            <table class="table table-custom">
+                <thead>
+                    <tr>
+                        <th style="background-color: #1e3a8a; color: white;">Supplier ID</th>
+                        <th style="background-color: #1e3a8a; color: white;">Name</th>
+                        <th style="background-color: #1e3a8a; color: white;">Phone</th>
+                        <th style="background-color: #1e3a8a; color: white;">Email</th>
+                        <th style="background-color: #1e3a8a; color: white;">Address</th>
+                        <th style="background-color: #1e3a8a; color: white;">Status</th>
+                        <th style="background-color: #1e3a8a; color: white; width:180px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (filteredSuppliers.Count == 0 && !string.IsNullOrEmpty(errorMessage))
+                    {
+                        <tr><td colspan="7" class="text-center">@errorMessage</td></tr>
+                    }
+                    else if (filteredSuppliers.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center">No suppliers found.</td></tr>
+                    }
+                    else
+                    {
+                        @for (int i = 0; i < filteredSuppliers.Count; i++)
+                        {
+                            var supplier = filteredSuppliers[i];
+                            <tr>
+                                <td>@supplier.SupplierId</td>
+                                <td>@supplier.Name</td>
+                                <td>@supplier.Phone</td>
+                                <td>@supplier.Email</td>
+                                <td>@(string.IsNullOrEmpty(supplier.Address) ? "N/A" : supplier.Address)</td>
+                                <td>@supplier.Status</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditSupplier(supplier)">Edit</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteSupplier(supplier)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<style>
+    .main-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .header-container {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        color: #1e3a8a;
+        margin-bottom: 10px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+        color: #1d3557;
+        margin-bottom: 15px;
+    }
+
+    .action-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .search-bar .form-control {
+        width: 200px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+
+    .btn-warning {
+        background-color: #ADD8E6;
+        color: darkblue;
+        border: none;
+    }
+
+    .btn-danger {
+        background-color: #FFCCCC;
+        color: darkred;
+        border: none;
+    }
+
+    .add-card {
+        background: #e0e2ea;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 20px auto;
+        width: 90%;
+    }
+
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .grid-four {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .grid-two {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-actions {
+        margin-top: 16px;
+        text-align: right;
+    }
+
+    .customer-table-box {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th, .table-custom td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+    .alert {
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ffeeba;
+        border-radius: 4px;
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+</style>
+
+@code {
+    private List<SupplierModel> suppliers = new();
+    private List<SupplierModel> filteredSuppliers = new();
+    private SupplierModel currentSupplier = new SupplierModel();
+    private SupplierModel? editSupplier;
+    private bool showForm = false;
+    private string searchTerm = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuppliers();
+        ApplyFilter();
+    }
+
+    private async Task LoadSuppliers()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            suppliers = await db.Suppliers.ToListAsync() ?? new List<SupplierModel>();
+            filteredSuppliers = suppliers.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading suppliers: {ex.Message}";
+            Logger.LogError(ex, errorMessage);
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage);
+        }
+    }
+
+    private async Task SaveSuppliers()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            if (editSupplier != null)
+            {
+                var existing = await db.Suppliers.FindAsync(editSupplier.Id);
+                if (existing != null)
+                {
+                    db.Entry(existing).CurrentValues.SetValues(currentSupplier);
+                }
+            }
+            else
+            {
+                db.Suppliers.Add(currentSupplier);
+            }
+            await db.SaveChangesAsync();
+            await LoadSuppliers();
+            ApplyFilter();
+            errorMessage = "Supplier saved successfully.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving supplier: {ex.Message}";
+            Logger.LogError(ex, errorMessage);
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage);
+        }
+    }
+
+    private void ToggleForm()
+    {
+        showForm = true;
+        editSupplier = null;
+        currentSupplier = new SupplierModel
+        {
+            SupplierId = string.Empty // Changed to empty string instead of GUID
+        };
+    }
+
+    private void EditSupplier(SupplierModel supplier)
+    {
+        editSupplier = supplier;
+        currentSupplier = new SupplierModel
+        {
+            Id = supplier.Id,
+            SupplierId = supplier.SupplierId,
+            Name = supplier.Name,
+            Phone = supplier.Phone,
+            Email = supplier.Email,
+            Address = supplier.Address,
+            Status = supplier.Status,
+            Notes = supplier.Notes
+        };
+        showForm = true;
+    }
+
+    private async Task DeleteSupplier(SupplierModel supplier)
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            var toDelete = await db.Suppliers.FindAsync(supplier.Id);
+            if (toDelete != null)
+            {
+                db.Suppliers.Remove(toDelete);
+                await db.SaveChangesAsync();
+                await LoadSuppliers();
+                ApplyFilter();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting supplier: {ex.Message}";
+            Logger.LogError(ex, errorMessage);
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        await SaveSuppliers();
+        showForm = false;
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+    }
+
+    private void BackToList()
+    {
+        showForm = false;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        filteredSuppliers = string.IsNullOrEmpty(searchTerm)
+            ? suppliers.ToList()
+            : suppliers.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                  s.SupplierId.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                  s.Phone.Contains(searchTerm) ||
+                                  s.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                  s.Address.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                  s.Status.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        ApplyFilter();
+    }
+}

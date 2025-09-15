@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyBlazorServerApp.Data;
+
 var builder = WebApplication.CreateBuilder(args);
-// Register EF Core with DbContextFactory (best for Blazor Server)
+
+// Register EF Core with DbContextFactory
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
@@ -13,24 +15,45 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
         )
     )
 );
+
+// Add services for Blazor Server and Razor Pages
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
 var app = builder.Build();
-// Middleware
+
+// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-// Ensure the database is created on startup (for development/testing)
-using (var scope = app.Services.CreateScope())
+app.UseAuthorization(); // Added for potential authentication/authorization support
+
+// Apply migrations on startup in development mode
+if (app.Environment.IsDevelopment())
 {
-    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-    using var db = dbFactory.CreateDbContext();
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        using var db = dbFactory.CreateDbContext();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        // Log the error and continue (prevent app crash in development)
+        Console.WriteLine($"An error occurred while applying migrations: {ex.Message}");
+        // Optionally, throw only if critical: throw;
+    }
 }
+
+// Map Blazor endpoints
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-app.Run(); 
+
+app.Run();
