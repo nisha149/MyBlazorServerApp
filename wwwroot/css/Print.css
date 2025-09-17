@@ -1,0 +1,32 @@
+﻿@media print {
+    .print-wrapper {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .company-header, .po-header, .po-content {
+        page-break-inside: avoid;
+    }
+
+        .company-header h2 {
+            font-size: 24px;
+        }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    .totals {
+        text-align: right;
+    }
+
+    button {
+        display: none;
+    }
+}

@@ -3,7 +3,6 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
-
 <div class="main-card">
     <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
         <h3 class="page-title">Purchase Order List</h3>
@@ -112,7 +111,6 @@
                                         <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
                                         Inclusive
                                     </label>
-
                                 </div>
                             </div>
                         </div>
@@ -141,10 +139,10 @@
                                             <td>@item.ProductId</td>
                                             <td>@item.ProductName</td>
                                             <td>@item.Quantity</td>
-                                            <td>@(item.Rate.HasValue ? item.Rate.Value.ToString("C") : "N/A")</td>
-                                            <td>@(item.DiscountPercent.HasValue ? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td>@(item.GSTPercent.HasValue ? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td>@(item.LineTotal.HasValue ? item.LineTotal.Value.ToString("C") : "N/A")</td>
+                                            <td>@(item.Rate.HasValue? item.Rate.Value.ToString("C") : "N/A")</td>
+                                            <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
                                             <td>@item.TaxMode</td>
                                             <td>
                                                 <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
@@ -198,14 +196,14 @@
                             <tr>
                                 <td>@po.POId</td>
                                 <td>@po.SupplierName</td>
-                                <td>@(po.OrderDate.HasValue ? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(po.ExpectedDelivery.HasValue ? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(po.TotalAmount.HasValue ? po.TotalAmount.Value.ToString("C") : "N/A")</td>
+                                <td>@(po.OrderDate.HasValue? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(po.ExpectedDelivery.HasValue? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("C") : "N/A")</td>
                                 <td>@po.Status</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="() => EditPurchaseOrder(po)"><i class="oi oi-pencil"></i></button>
                                     <button class="btn btn-danger btn-sm me-1" @onclick="() => DeletePurchaseOrder(po)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseOrder(po)">
+                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseOrder(po.Id)">
                                         <i class="oi oi-print"></i>
                                     </button>
                                 </td>
@@ -217,7 +215,6 @@
         </div>
     }
 </div>
-
 @code {
     // Use fully-qualified model type to avoid naming conflicts with page class
     private List<MyBlazorServerApp.Models.PurchaseOrder> purchaseOrders = new();
@@ -230,13 +227,11 @@
     private int pageSize = 5;
     private string? errorMessage;
     private MyBlazorServerApp.Models.PurchaseOrderItem newItem = new();
-
     protected override async Task OnInitializedAsync()
     {
         await LoadPurchaseOrders();
         ApplyFilter();
     }
-
     private async Task LoadPurchaseOrders()
     {
         try
@@ -251,7 +246,6 @@
             Console.WriteLine(errorMessage);
         }
     }
-
     private void ShowAddForm()
     {
         editingPurchaseOrder = null;
@@ -260,14 +254,12 @@
         isFormVisible = true;
         errorMessage = null;
     }
-
     private void BackToList()
     {
         isFormVisible = false;
         editingPurchaseOrder = null;
         errorMessage = null;
     }
-
     private async Task SavePurchaseOrder()
     {
         try
@@ -303,7 +295,6 @@
             Console.WriteLine(errorMessage);
         }
     }
-
     private void EditPurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
     {
         editingPurchaseOrder = po;
@@ -323,7 +314,6 @@
         isFormVisible = true;
         errorMessage = null;
     }
-
     private async Task DeletePurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
     {
         try
@@ -344,12 +334,11 @@
             Console.WriteLine(errorMessage);
         }
     }
-
-    private void PrintPurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
+    private async Task PrintPurchaseOrder(int id)
     {
-        NavigationManager.NavigateTo($"/purchaseorder/print/{po.Id}");
+        NavigationManager.NavigateTo($"/purchaseorder/print/{id}");
+        // Note: The printCustom JS function should handle the print action on the target page
     }
-
     private void ApplyFilter()
     {
         filteredPurchaseOrders = purchaseOrders
@@ -358,14 +347,12 @@
             .Take(pageSize)
             .ToList();
     }
-
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
         currentPage = 1;
         ApplyFilter();
     }
-
     private void AddItem()
     {
         if (purchaseOrderModel.Items == null) purchaseOrderModel.Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>();
@@ -385,13 +372,11 @@
         newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
         UpdateTotalAmount();
     }
-
     private void RemoveItem(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         purchaseOrderModel.Items?.Remove(item);
         UpdateTotalAmount();
     }
-
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         if (item.Quantity == null || item.Rate == null) return 0;
@@ -408,18 +393,15 @@
             return taxableAmount + gst;
         }
     }
-
     private void UpdateTotalAmount()
     {
         purchaseOrderModel.TotalAmount = purchaseOrderModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
     }
-
     private void OnTaxModeChange(ChangeEventArgs e)
     {
         newItem.TaxMode = e.Value?.ToString();
         UpdateLineTotal();
     }
-
     private void UpdateLineTotal()
     {
         newItem.LineTotal = CalculateLineTotal(newItem);

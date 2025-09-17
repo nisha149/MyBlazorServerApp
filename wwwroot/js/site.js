@@ -1,21 +1,20 @@
-﻿window.printDocument = function (content) {
-    const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Purchase Order</title>
-                <style>
-                    body { font-family: Arial, sans-serif; }
-                    .print-purchase-order { padding: 20px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
-                    .summary, .notes { margin-top: 20px; }
-                </style>
-            </head>
-            <body>${content}</body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+﻿window.printCustom = async (elementId) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const printWindow = window.open('', '', 'height=600,width=800');
+        if (printWindow) {
+            printWindow.document.write('<html><head><title>Print Purchase Order</title>');
+            printWindow.document.write('<link rel="stylesheet" href="/css/print.css" media="print" />');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(element.innerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+            printWindow.close();
+        } else {
+            alert('Popup blocked. Please allow popups for this site.');
+        }
+    } else {
+        console.error('Element not found:', elementId);
+    }
 };
