@@ -5,25 +5,29 @@
 @inject NavigationManager NavigationManager
 <div class="main-card">
     <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
-        <h3 class="page-title">Purchase Order List</h3>
-        <p class="subtitle">Manage all your purchase orders</p>
-        <div class="action-container">
-            <div class="search-bar">
-                <InputText class="form-control" @bind-Value="searchText" placeholder="Search by PO ID or Supplier..." @oninput="OnSearchInput" />
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 class="page-title">Purchase Order List</h3>
+                <p class="subtitle">Manage all your purchase orders</p>
             </div>
-            <button class="btn btn-primary" @onclick="ApplyFilter">Search</button>
-            <button class="btn btn-primary" @onclick="ShowAddForm">Add New PO</button>
+            <div class="action-container">
+                <div class="search-bar">
+                    <InputText class="form-control" @bind-Value="searchText" placeholder="Search by PO ID or Supplier..." @oninput="OnSearchInput" />
+                </div>
+                <button class="btn btn-primary" @onclick="ApplyFilter">Search</button>
+                <button class="btn btn-primary" @onclick="ShowAddForm">Add New PO</button>
+            </div>
         </div>
     </div>
     @* FORM / ADD *@
     @if (isFormVisible)
     {
         <div class="form-container">
-            <h3 class="page-title">Create New Purchase Order</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="page-title" style="color: #1e3a8a;">Create New Purchase Order</h3>
+                <button class="btn btn-secondary" @onclick="BackToList">View All POs</button>
+            </div>
             <div class="add-card">
-                <div class="form-header">
-                    <button class="btn btn-secondary" @onclick="BackToList">View All POs</button>
-                </div>
                 <div class="inner-box">
                     <EditForm Model="purchaseOrderModel" OnValidSubmit="SavePurchaseOrder">
                         <DataAnnotationsValidator />
@@ -32,8 +36,7 @@
                         {
                             <div class="alert alert-danger">@errorMessage</div>
                         }
-                        <h4 class="section-title">Purchase Order Header</h4>
-                        <div class="grid-three">
+                        <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">PO ID</label>
                                 <InputText class="form-control" @bind-Value="purchaseOrderModel.POId" />
@@ -47,7 +50,7 @@
                                 <InputDate class="form-control" @bind-Value="purchaseOrderModel.OrderDate" />
                             </div>
                         </div>
-                        <div class="grid-three">
+                        <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Expected Delivery Date</label>
                                 <InputDate class="form-control" @bind-Value="purchaseOrderModel.ExpectedDelivery" />
@@ -66,7 +69,7 @@
                                 <InputTextArea class="form-control" @bind-Value="purchaseOrderModel.Remarks" />
                             </div>
                         </div>
-                        <h4 class="section-title">Purchase Order Items</h4>
+                        <h4 class="section-title" style="color: #1e3a8a;">Purchase Order Items</h4>
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Category</label>
@@ -120,16 +123,16 @@
                         <div class="items-table">
                             <table class="table table-custom">
                                 <thead>
-                                    <tr>
-                                        <th>Product ID</th>
-                                        <th>Product Name</th>
-                                        <th>Quantity</th>
-                                        <th>Rate</th>
-                                        <th>Disc %</th>
+                                    <tr style="background-color: #1e3a8a; color: white;">
+                                        <th>PRODUCT ID</th>
+                                        <th>PRODUCT NAME</th>
+                                        <th>QUANTITY</th>
+                                        <th>RATE</th>
+                                        <th>DISC %</th>
                                         <th>GST %</th>
-                                        <th>Line Total</th>
-                                        <th>Tax Mode</th>
-                                        <th>Actions</th>
+                                        <th>LINE TOTAL</th>
+                                        <th>TAX MODE</th>
+                                        <th>ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -174,14 +177,14 @@
         <div class="product-table-box">
             <table class="table table-custom">
                 <thead>
-                    <tr>
+                    <tr style="background-color: #1e3a8a; color: white;">
                         <th>PO ID</th>
-                        <th>Supplier Name</th>
-                        <th>Order Date</th>
-                        <th>Expected Delivery</th>
-                        <th>Total Amount</th>
-                        <th>Status</th>
-                        <th style="width:180px;">Actions</th>
+                        <th>SUPPLIER NAME</th>
+                        <th>ORDER DATE</th>
+                        <th>EXPECTED DELIVERY</th>
+                        <th>TOTAL AMOUNT</th>
+                        <th>STATUS</th>
+                        <th style="width:180px;">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -407,3 +410,103 @@
         newItem.LineTotal = CalculateLineTotal(newItem);
     }
 }
+<style>
+    .main-card {
+        padding: 20px;
+    }
+
+    .header-container {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 24px;
+        color: #1e3a8a;
+    }
+
+    .subtitle {
+        margin: 5px 0;
+        color: #6c757d;
+    }
+
+    .action-container {
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-bar {
+        flex-grow: 1;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two, .grid-three {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .radio-input {
+        margin-right: 5px;
+    }
+
+    .form-actions {
+        margin-top: 10px;
+    }
+
+    .full-width {
+        width: 100%;
+    }
+
+    .items-table {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th,
+        .table-custom td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
+    .summary {
+        margin-top: 20px;
+    }
+
+    .product-table-box {
+        margin-top: 20px;
+    }
+</style>
