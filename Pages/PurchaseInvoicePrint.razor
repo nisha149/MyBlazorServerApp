@@ -1,0 +1,442 @@
+﻿@page "/purchaseinvoiceprint/{Id:int}"
+@using MyBlazorServerApp.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<div class="print-wrapper">
+    <!-- LEFT SIDE: Custom Print Dialog Panel -->
+    <div class="print-sidebar">
+        <div class="print-header">
+            <h4>Print</h4>
+            <p class="total-sheets">Total: 2 sheets</p>
+        </div>
+        <div class="printer-section">
+            <label>Printer</label>
+            <select class="form-select" id="printer-select">
+                <option value="default">Default Printer</option>
+                <option value="pdf">Save as PDF</option>
+                <option value="anydesk">AnyDesk Printer</option>
+            </select>
+        </div>
+        <div class="copies-section">
+            <label>Copies</label>
+            <input type="number" class="form-control" id="copies-input" value="1" min="1" />
+        </div>
+        <div class="layout-section">
+            <label>Layout</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="layout" value="portrait" checked id="portrait-radio" />
+                    Portrait
+                </label>
+                <label>
+                    <input type="radio" name="layout" value="landscape" id="landscape-radio" />
+                    Landscape
+                </label>
+            </div>
+        </div>
+        <div class="pages-section">
+            <label>Pages</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="pages" value="all" checked id="all-radio" />
+                    All
+                </label>
+                <label>
+                    <input type="radio" name="pages" value="odd" id="odd-radio" />
+                    Odd pages only
+                </label>
+                <label>
+                    <input type="radio" name="pages" value="even" id="even-radio" />
+                    Even pages only
+                </label>
+            </div>
+        </div>
+        <div class="button-section">
+            <button class="btn btn-primary" @onclick="PerformPrint">Print</button>
+            <button class="btn btn-secondary" @onclick="CancelPrint">Cancel</button>
+        </div>
+    </div>
+    <!-- RIGHT SIDE: Print Preview -->
+    <div class="print-preview">
+        @if (purchaseInvoice == null && errorMessage == null)
+        {
+            <p>Loading...</p>
+        }
+        else if (errorMessage != null)
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        else
+        {
+            <div class="print-container" id="print-section">
+                <div class="header-column" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div class="company-details" style="text-align: left; width: 50%;">
+                        <h2 style="color: #1e3a8a;">Your Company Name</h2>
+                        <p>123 Business Rd, City, State 12345</p>
+                        <p>Phone: (123) 456-7890 | Email: info@yourcompany.com</p>
+                    </div>
+                    <div class="po-details" style="text-align: right; width: 50%;">
+                        <p><b>PI ID:</b> @purchaseInvoice.PIId</p>
+                        <p><b>Invoice Date:</b> @(purchaseInvoice.InvoiceDate?.ToString("dd-MM-yyyy") ?? "N/A")</p>
+                        <p><b>Due Date:</b> @(purchaseInvoice.DueDate?.ToString("dd-MM-yyyy") ?? "N/A")</p>
+                    </div>
+                </div>
+                <div class="po-header" style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                    <h3 style="color: #1e3a8a; font-size: 1.5em; text-transform: uppercase;">Purchase Invoice</h3>
+                </div>
+                <div class="supplier-section" style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px;">
+                    <h3 style="color: #1e3a8a; font-size: 1.5em; text-align: center; text-transform: uppercase; margin: 0 0 10px 0;">PURCHASE INVOICE</h3>
+                    <div class="supplier-row" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <p><b>Supplier Name:</b> @purchaseInvoice.SupplierName</p>
+                        <p><b>Supplier Address:</b> N/A</p> <!-- Add SupplierAddress if available in model -->
+                    </div>
+                    <div class="supplier-row" style="display: flex; justify-content: space-between;">
+                        <p><b>Supplier Phone:</b> N/A</p> <!-- Add SupplierPhone if available -->
+                        <p><b>Supplier Email:</b> N/A</p> <!-- Add SupplierEmail if available -->
+                    </div>
+                </div>
+                <h4 style="color: #1e3a8a;">Invoice Items</h4>
+                <table class="table" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Product Name</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Quantity</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Rate</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Disc %</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">GST %</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in purchaseInvoice.Items ?? new List<PurchaseInvoiceItem>())
+                        {
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@item.ProductName</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@item.Quantity</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">₹ @(item.Rate?.ToString("F2") ?? "0.00")</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@(item.DiscountPercent?.ToString("F2") ?? "0.00")%</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@(item.GSTPercent?.ToString("F2") ?? "0.00")%</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">₹ @(item.LineTotal?.ToString("F2") ?? "0.00")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="totals" style="text-align: right; margin-bottom: 20px;">
+                    <p><b>Sub Total:</b> ₹ @SubTotal.ToString("F2")</p>
+                    <p><b>Discount:</b> ₹ @Discount.ToString("F2")</p>
+                    <p><b>Tax (GST):</b> ₹ @Tax.ToString("F2")</p>
+                    <p><b>Grand Total:</b> ₹ @GrandTotal.ToString("F2")</p>
+                </div>
+                <div class="notes-section" style="margin-bottom: 10px; text-align: left;">
+                    <p style="color: #1e3a8a;"><b>Remarks:</b></p>
+                    <p>@(purchaseInvoice.Remarks ?? "N/A")</p>
+                </div>
+                <div class="terms-section" style="margin-bottom: 10px; text-align: left;">
+                    <p style="color: #1e3a8a;"><b>Terms and Conditions:</b></p>
+                    <p>Payment due within 30 days of invoice. All goods remain the property of the seller until full payment is received.</p>
+                </div>
+                <div class="generated-section" style="text-align: center; margin-bottom: 10px;">
+                    <p><b>Generated on:</b> @DateTime.Now.ToString("dd-MM-yyyy hh:mm tt") IST</p>
+                </div>
+                <div class="thank-you" style="text-align: center;">
+                    <p>Thank you for your business!</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private MyBlazorServerApp.Models.PurchaseInvoice? purchaseInvoice;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPurchaseInvoice();
+    }
+
+    private async Task LoadPurchaseInvoice()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            purchaseInvoice = await db.PurchaseInvoices.Include(pi => pi.Items).FirstOrDefaultAsync(pi => pi.Id == Id);
+            if (purchaseInvoice == null)
+            {
+                errorMessage = $"Purchase invoice with ID {Id} not found.";
+                NavigationManager.NavigateTo("/purchaseinvoice");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading purchase invoice ID {Id}: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+    }
+
+    private decimal SubTotal => purchaseInvoice?.Items.Sum(i => (i.Quantity ?? 0) * (i.Rate ?? 0)) ?? 0;
+    private decimal Discount => purchaseInvoice?.Items.Sum(i => ((i.Quantity ?? 0) * (i.Rate ?? 0)) * ((i.DiscountPercent ?? 0) / 100)) ?? 0;
+    private decimal Tax => purchaseInvoice?.Items.Sum(i => (((i.Quantity ?? 0) * (i.Rate ?? 0)) - (((i.Quantity ?? 0) * (i.Rate ?? 0)) * ((i.DiscountPercent ?? 0) / 100))) * ((i.GSTPercent ?? 0) / 100)) ?? 0;
+    private decimal GrandTotal => SubTotal - Discount + Tax;
+
+    private async Task PerformPrint()
+    {
+        await JSRuntime.InvokeVoidAsync("printCustom", "print-section");
+    }
+
+    private void CancelPrint()
+    {
+        NavigationManager.NavigateTo("/purchaseinvoice");
+    }
+}
+
+<style>
+    .print-wrapper {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .print-sidebar {
+        width: 250px;
+        background: #f8f9fa;
+        padding: 20px;
+        border-right: 1px solid #dee2e6;
+        overflow-y: auto;
+    }
+
+    .print-header {
+        margin-bottom: 15px;
+    }
+
+        .print-header h4 {
+            margin: 0;
+            color: #1e3a8a;
+        }
+
+    .total-sheets {
+        font-size: 14px;
+        color: #6c757d;
+        margin: 5px 0;
+    }
+
+    .print-sidebar label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .form-select, .form-control {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .radio-group {
+        margin-bottom: 10px;
+    }
+
+        .radio-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+    .button-section {
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .print-preview {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: white;
+    }
+
+    .print-container {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .header-column .company-details h2 {
+        margin: 0 0 10px 0;
+        color: #1e3a8a;
+    }
+
+    .header-column .po-details p {
+        margin: 5px 0;
+    }
+
+    .po-header h3 {
+        margin: 0;
+        color: #1e3a8a;
+        font-size: 1.5em;
+        text-transform: uppercase;
+    }
+
+    .supplier-section {
+        border: 1px solid #ddd;
+        padding: 10px;
+    }
+
+    .supplier-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
+        .supplier-row p {
+            margin: 0;
+        }
+
+    .table th, .table td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+    }
+
+    .totals p {
+        margin: 5px 0;
+    }
+
+    .notes-section, .terms-section {
+        margin: 10px 0;
+    }
+
+        .notes-section p, .terms-section p {
+            color: #1e3a8a;
+        }
+
+    .generated-section, .thank-you {
+        margin: 10px 0;
+        text-align: center;
+    }
+
+    @@media print {
+        .print-wrapper {
+            display: block !important;
+        }
+
+        .print-sidebar {
+            display: none !important;
+        }
+
+        .print-preview {
+            width: 100% !important;
+            height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .print-container {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 auto !important;
+            max-width: 800px !important;
+            padding: 20px !important;
+            page-break-inside: avoid !important;
+        }
+
+        .header-column {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-bottom: 20px !important;
+        }
+
+        .company-details, .po-details {
+            width: 50% !important;
+            text-align: left !important;
+        }
+
+        .po-details {
+            text-align: right !important;
+        }
+
+        .po-header {
+            margin-bottom: 20px !important;
+            border-bottom: 1px solid #ddd !important;
+            padding-bottom: 10px !important;
+        }
+
+        .supplier-section {
+            margin-bottom: 20px !important;
+            border: 1px solid #ddd !important;
+            padding: 10px !important;
+        }
+
+        .supplier-row {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-bottom: 5px !important;
+        }
+
+        .table {
+            width: 100% !important;
+            margin-bottom: 20px !important;
+            page-break-inside: auto !important;
+        }
+
+        .totals {
+            text-align: right !important;
+            margin-bottom: 20px !important;
+        }
+
+        .notes-section, .terms-section {
+            margin: 10px 0 !important;
+            text-align: left !important;
+        }
+
+        .generated-section, .thank-you {
+            text-align: center !important;
+            margin: 10px 0 !important;
+        }
+
+        body > *:not(#print-section) {
+            display: none !important;
+        }
+
+        #print-section, #print-section * {
+            visibility: visible !important;
+        }
+
+        #print-section {
+            position: relative !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+        }
+    }
+</style>
+
+<script>
+    window.printCustom = function (elementId) {
+        var printContents = document.getElementById(elementId).innerHTML;
+        var originalContents = document.body.innerHTML;
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+    };
+</script>

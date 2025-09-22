@@ -6,13 +6,14 @@ namespace MyBlazorServerApp.Data
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
         public virtual DbSet<Customer> Customers { get; set; }
         public virtual DbSet<ProductGroup> ProductGroups { get; set; }
         public virtual DbSet<Product> Products { get; set; }
         public virtual DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public virtual DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
         public virtual DbSet<Supplier> Suppliers { get; set; }
+        public virtual DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
+        public virtual DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,7 +45,7 @@ namespace MyBlazorServerApp.Data
                 entity.Property(p => p.Unit).HasMaxLength(20);
                 entity.Property(p => p.RetailRate).HasPrecision(18, 4);
                 entity.Property(p => p.NextPurchaseRate).HasPrecision(18, 4);
-                entity.Property(p => p.Mrp).HasPrecision(10, 2);         // Added for MRP
+                entity.Property(p => p.Mrp).HasPrecision(10, 2); // Added for MRP
                 entity.Property(p => p.GstPercentage).HasPrecision(5, 2); // Added for GST Percentage
                 entity.HasOne(p => p.ProductGroup)
                     .WithMany()
@@ -96,6 +97,38 @@ namespace MyBlazorServerApp.Data
                 entity.Property(s => s.Address).HasMaxLength(500).IsRequired();
                 entity.Property(s => s.Status).HasMaxLength(50).IsRequired();
                 entity.Property(s => s.Notes).HasMaxLength(500);
+            });
+
+            // PurchaseInvoice
+            modelBuilder.Entity<PurchaseInvoice>(entity =>
+            {
+                entity.HasKey(pi => pi.Id);
+                entity.Property(pi => pi.PIId).HasMaxLength(50).IsRequired();
+                entity.Property(pi => pi.SupplierName).HasMaxLength(100).IsRequired();
+                entity.Property(pi => pi.InvoiceDate).HasDefaultValueSql("GETDATE()");
+                entity.Property(pi => pi.DueDate).HasDefaultValueSql("DATEADD(day, 30, GETDATE())");
+                entity.Property(pi => pi.TotalAmount).HasPrecision(18, 4);
+                entity.Property(pi => pi.Status).HasMaxLength(50).IsRequired();
+                entity.Property(pi => pi.Remarks).HasMaxLength(500);
+                entity.HasMany(pi => pi.Items)
+                    .WithOne(pii => pii.PurchaseInvoice)
+                    .HasForeignKey(pii => pii.PurchaseInvoiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // PurchaseInvoiceItem
+            modelBuilder.Entity<PurchaseInvoiceItem>(entity =>
+            {
+                entity.HasKey(pii => pii.Id);
+                entity.Property(pii => pii.ProductId).HasMaxLength(36).IsRequired();
+                entity.Property(pii => pii.ProductName).HasMaxLength(100).IsRequired();
+                entity.Property(pii => pii.Category).HasMaxLength(100);
+                entity.Property(pii => pii.TaxMode).HasMaxLength(50);
+                entity.Property(pii => pii.Quantity).HasPrecision(18, 4);
+                entity.Property(pii => pii.Rate).HasPrecision(18, 4);
+                entity.Property(pii => pii.DiscountPercent).HasPrecision(18, 4);
+                entity.Property(pii => pii.GSTPercent).HasPrecision(18, 4);
+                entity.Property(pii => pii.LineTotal).HasPrecision(18, 4);
             });
         }
     }

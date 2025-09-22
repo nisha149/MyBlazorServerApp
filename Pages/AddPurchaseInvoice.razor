@@ -1,0 +1,503 @@
+﻿@page "/addpurchaseinvoice"
+@using MyBlazorServerApp.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+<div class="main-container">
+    <div class="sidebar">
+        <h3>Add Purchase Invoice</h3>
+    </div>
+    <div class="content-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+            <h3 class="page-title" style="color: #1e3a8a;">@Title</h3>
+            <button class="btn btn-secondary" @onclick="BackToList">Back to List</button>
+        </div>
+        <div class="add-card">
+            <div class="inner-box">
+                <EditForm Model="purchaseInvoiceModel" OnValidSubmit="SavePurchaseInvoice">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <div class="grid-two">
+                        <div class="form-item">
+                            <label class="form-label">PI ID</label>
+                            <InputText class="form-control" @bind-Value="purchaseInvoiceModel.PIId" required />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Supplier</label>
+                            <InputText class="form-control" @bind-Value="purchaseInvoiceModel.SupplierName" required />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Invoice Date</label>
+                            <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.InvoiceDate" required />
+                        </div>
+                    </div>
+                    <div class="grid-two">
+                        <div class="form-item">
+                            <label class="form-label">Due Date</label>
+                            <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.DueDate" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Status</label>
+                            <InputSelect class="form-control" @bind-Value="purchaseInvoiceModel.Status">
+                                <option value="">Select Status</option>
+                                <option>Pending</option>
+                                <option>Paid</option>
+                                <option>Overdue</option>
+                            </InputSelect>
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Remarks</label>
+                            <InputTextArea class="form-control" @bind-Value="purchaseInvoiceModel.Remarks" />
+                        </div>
+                    </div>
+                    <h4 class="section-title" style="color: #1e3a8a;">Purchase Invoice Items</h4>
+                    <div class="grid-three">
+                        <div class="form-item">
+                            <label class="form-label">Category</label>
+                            <InputText class="form-control" @bind-Value="newItem.Category" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Product</label>
+                            <InputText class="form-control" @bind-Value="newItem.ProductName" required />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Quantity</label>
+                            <InputNumber class="form-control" @bind-Value="newItem.Quantity" required />
+                        </div>
+                    </div>
+                    <div class="grid-three">
+                        <div class="form-item">
+                            <label class="form-label">Rate</label>
+                            <InputNumber class="form-control" @bind-Value="newItem.Rate" required />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Disc %</label>
+                            <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">GST %</label>
+                            <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
+                        </div>
+                    </div>
+                    <div class="grid-two">
+                        <div class="form-item">
+                            <label class="form-label">Line Total (incl. GST)</label>
+                            <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">Tax Calculation Mode</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="taxMode" value="Line Exclusive" checked="@(newItem.TaxMode == "Line Exclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                    Exclusive
+                                </label>
+                                <label>
+                                    <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                    Inclusive
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions full-width">
+                        <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
+                    </div>
+                    <div class="items-table">
+                        <table class="table table-custom">
+                            <thead>
+                                <tr style="background-color: #1e3a8a; color: white;">
+                                    <th>PRODUCT ID</th>
+                                    <th>PRODUCT NAME</th>
+                                    <th>QUANTITY</th>
+                                    <th>RATE</th>
+                                    <th>DISC %</th>
+                                    <th>GST %</th>
+                                    <th>LINE TOTAL</th>
+                                    <th>TAX MODE</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in purchaseInvoiceModel.Items)
+                                {
+                                    <tr>
+                                        <td>@item.ProductId</td>
+                                        <td>@item.ProductName</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@(item.Rate.HasValue? item.Rate.Value.ToString("C") : "N/A")</td>
+                                        <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
+                                        <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
+                                        <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
+                                        <td>@item.TaxMode</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="summary">
+                        <div class="form-item">
+                            <label class="form-label">Grand Total (incl. GST)</label>
+                            <InputNumber class="form-control" @bind-Value="purchaseInvoiceModel.TotalAmount" readonly />
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Purchase Invoice</button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+@code {
+    private string Title => editId.HasValue ? "Edit Purchase Invoice" : "Add New Purchase Invoice";
+    private MyBlazorServerApp.Models.PurchaseInvoice purchaseInvoiceModel = new() { Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>() };
+    private MyBlazorServerApp.Models.PurchaseInvoiceItem newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem { TaxMode = "Line Exclusive" };
+    private string? errorMessage;
+    private int? editId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        if (queryParameters.TryGetValue("edit", out var editValue) && int.TryParse(editValue, out int id))
+        {
+            editId = id;
+            await LoadPurchaseInvoiceForEdit();
+        }
+    }
+
+    private async Task LoadPurchaseInvoiceForEdit()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            var pi = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editId);
+            if (pi != null)
+            {
+                purchaseInvoiceModel = pi;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading purchase invoice: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+    }
+
+    private void BackToList()
+    {
+        NavigationManager.NavigateTo("/purchaseinvoice");
+    }
+
+    private async Task SavePurchaseInvoice()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (string.IsNullOrEmpty(purchaseInvoiceModel.PIId) || string.IsNullOrEmpty(purchaseInvoiceModel.SupplierName) || !purchaseInvoiceModel.InvoiceDate.HasValue)
+            {
+                errorMessage = "PI ID, Supplier, and Invoice Date are required.";
+                return;
+            }
+            if (purchaseInvoiceModel.Items.Any(i => string.IsNullOrEmpty(i.ProductName) || !i.Quantity.HasValue || !i.Rate.HasValue))
+            {
+                errorMessage = "All items must have Product Name, Quantity, and Rate filled.";
+                return;
+            }
+            db.ChangeTracker.TrackGraph(purchaseInvoiceModel, e => e.Entry.State = e.Entry.IsKeySet ? EntityState.Modified : EntityState.Added);
+            if (editId.HasValue)
+            {
+                var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editId);
+                if (existingPI != null)
+                {
+                    existingPI.PIId = purchaseInvoiceModel.PIId;
+                    existingPI.SupplierName = purchaseInvoiceModel.SupplierName;
+                    existingPI.InvoiceDate = purchaseInvoiceModel.InvoiceDate;
+                    existingPI.DueDate = purchaseInvoiceModel.DueDate;
+                    existingPI.TotalAmount = purchaseInvoiceModel.TotalAmount;
+                    existingPI.Status = purchaseInvoiceModel.Status;
+                    existingPI.Remarks = purchaseInvoiceModel.Remarks;
+                    existingPI.Items.Clear();
+                    foreach (var item in purchaseInvoiceModel.Items)
+                    {
+                        item.PurchaseInvoiceId = existingPI.Id; // ✅ Ensure FK
+                        existingPI.Items.Add(item);
+                    }
+                }
+            }
+            else
+            {
+                await db.PurchaseInvoices.AddAsync(purchaseInvoiceModel);
+            }
+            await db.SaveChangesAsync();
+            NavigationManager.NavigateTo("/purchaseinvoice");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Save failed: {ex.Message} - Details: {ex.InnerException?.Message}";
+            Console.WriteLine($"Save failed: {ex.Message} - Details: {ex.InnerException?.Message}");
+        }
+    }
+
+    private void AddItem()
+    {
+        if (purchaseInvoiceModel.Items == null)
+            purchaseInvoiceModel.Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>();
+        if (string.IsNullOrEmpty(newItem.ProductName) || !newItem.Quantity.HasValue || !newItem.Rate.HasValue)
+        {
+            errorMessage = "Product Name, Quantity, and Rate are required for items.";
+            return;
+        }
+        newItem.LineTotal = CalculateLineTotal(newItem);
+        var itemToAdd = new MyBlazorServerApp.Models.PurchaseInvoiceItem
+        {
+            ProductId = Guid.NewGuid().ToString(),
+            ProductName = newItem.ProductName,
+            Category = newItem.Category,
+            Quantity = newItem.Quantity.Value,
+            Rate = newItem.Rate.Value,
+            DiscountPercent = newItem.DiscountPercent,
+            GSTPercent = newItem.GSTPercent,
+            TaxMode = newItem.TaxMode ?? "Line Exclusive",
+            LineTotal = newItem.LineTotal,
+            PurchaseInvoiceId = purchaseInvoiceModel.Id // ✅ FIXED
+        };
+        purchaseInvoiceModel.Items.Add(itemToAdd);
+        StateHasChanged(); // Force UI update to reflect added item
+        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem { TaxMode = "Line Exclusive" };
+        UpdateTotalAmount();
+        errorMessage = null;
+    }
+
+    private void RemoveItem(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
+    {
+        purchaseInvoiceModel.Items?.Remove(item);
+        UpdateTotalAmount();
+    }
+
+    private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
+    {
+        if (item.Quantity == null || item.Rate == null) return 0;
+        decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
+        decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
+        decimal taxableAmount = baseAmount - discount;
+        if (item.TaxMode == "Line Inclusive")
+        {
+            return taxableAmount;
+        }
+        else
+        {
+            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m;
+            return taxableAmount + gst;
+        }
+    }
+
+    private void UpdateTotalAmount()
+    {
+        purchaseInvoiceModel.TotalAmount = purchaseInvoiceModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
+    }
+
+    private void OnTaxModeChange(ChangeEventArgs e)
+    {
+        newItem.TaxMode = e.Value?.ToString();
+        UpdateLineTotal();
+    }
+
+    private void UpdateLineTotal()
+    {
+        newItem.LineTotal = CalculateLineTotal(newItem);
+    }
+}
+<style>
+    .main-container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        width: 250px;
+        background: #f8f9fa;
+        padding: 20px;
+        border-right: 1px solid #dee2e6;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        transition: transform 0.3s ease;
+    }
+
+    .content-area {
+        margin-left: 250px;
+        padding: 20px;
+        overflow-y: auto;
+        background: white;
+        width: calc(100% - 250px);
+        transition: margin-left 0.3s ease;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 24px;
+    }
+
+    .add-card {
+        margin-top: 0;
+    }
+
+    .inner-box {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 5px;
+    }
+
+    .grid-two, .grid-three {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .form-control {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .radio-input {
+        margin-right: 5px;
+    }
+
+    .form-actions {
+        margin-top: 10px;
+    }
+
+    .full-width {
+        width: 100%;
+    }
+
+    .items-table {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th, .table-custom td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
+        .table-custom th {
+            background-color: #1e3a8a;
+            color: white;
+            text-transform: uppercase;
+        }
+
+    .summary {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    /* Mobile Responsive Adjustments */
+    @@media (max-width: 768px) {
+        .sidebar
+
+    {
+        width: 100%;
+        height: auto;
+        position: relative;
+        transform: translateX(0);
+    }
+
+    .content-area {
+        margin-left: 0;
+        width: 100%;
+        padding: 10px;
+    }
+
+    .page-title {
+        font-size: 20px;
+    }
+
+    .grid-two, .grid-three {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions, .summary {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .summary .form-item {
+            width: 100%;
+        }
+
+        .summary .form-actions {
+            width: 100%;
+            text-align: center;
+        }
+
+    .items-table table {
+        font-size: 14px;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 6px;
+    }
+
+    }
+</style>

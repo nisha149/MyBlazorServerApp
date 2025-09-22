@@ -1,0 +1,580 @@
+﻿@page "/purchaseinvoice"
+@using MyBlazorServerApp.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+<div class="main-card">
+    <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 class="page-title">Purchase Invoice List</h3>
+                <p class="subtitle">Manage all your purchase invoices</p>
+            </div>
+            <div class="action-container">
+                <div class="search-bar">
+                    <InputText class="form-control" @bind-Value="searchText" placeholder="Search by PI ID or Supplier..." @oninput="OnSearchInput" />
+                </div>
+                <button class="btn btn-primary" @onclick="ApplyFilter">Search</button>
+                <button class="btn btn-primary" @onclick="ShowAddForm">Add New PI</button>
+            </div>
+        </div>
+    </div>
+    @* FORM / ADD *@
+    @if (isFormVisible)
+    {
+        <div class="form-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="page-title" style="color: #1e3a8a;">Create New Purchase Invoice</h3>
+                <button class="btn btn-secondary" @onclick="BackToList">View All PIs</button>
+            </div>
+            <div class="add-card">
+                <div class="inner-box">
+                    <EditForm Model="purchaseInvoiceModel" OnValidSubmit="SavePurchaseInvoice">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">@errorMessage</div>
+                        }
+                        <div class="grid-two">
+                            <div class="form-item">
+                                <label class="form-label">PI ID</label>
+                                <InputText class="form-control" @bind-Value="purchaseInvoiceModel.PIId" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Supplier</label>
+                                <InputText class="form-control" @bind-Value="purchaseInvoiceModel.SupplierName" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Invoice Date</label>
+                                <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.InvoiceDate" required />
+                            </div>
+                        </div>
+                        <div class="grid-two">
+                            <div class="form-item">
+                                <label class="form-label">Due Date</label>
+                                <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.DueDate" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Status</label>
+                                <InputSelect class="form-control" @bind-Value="purchaseInvoiceModel.Status">
+                                    <option value="">Select Status</option>
+                                    <option>Pending</option>
+                                    <option>Paid</option>
+                                    <option>Overdue</option>
+                                </InputSelect>
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Remarks</label>
+                                <InputTextArea class="form-control" @bind-Value="purchaseInvoiceModel.Remarks" />
+                            </div>
+                        </div>
+                        <h4 class="section-title" style="color: #1e3a8a;">Purchase Invoice Items</h4>
+                        <div class="grid-three">
+                            <div class="form-item">
+                                <label class="form-label">Category</label>
+                                <InputText class="form-control" @bind-Value="newItem.Category" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Product</label>
+                                <InputText class="form-control" @bind-Value="newItem.ProductName" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Quantity</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" required />
+                            </div>
+                        </div>
+                        <div class="grid-three">
+                            <div class="form-item">
+                                <label class="form-label">Rate</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Disc %</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">GST %</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
+                            </div>
+                        </div>
+                        <div class="grid-two">
+                            <div class="form-item">
+                                <label class="form-label">Line Total (incl. GST)</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Tax Calculation Mode</label>
+                                <div class="radio-group">
+                                    <label>
+                                        <input type="radio" name="taxMode" value="Line Exclusive" checked="@(newItem.TaxMode == "Line Exclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        Exclusive
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        Inclusive
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions full-width">
+                            <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
+                        </div>
+                        <div class="items-table">
+                            <table class="table table-custom">
+                                <thead>
+                                    <tr style="background-color: #1e3a8a; color: white;">
+                                        <th>PRODUCT ID</th>
+                                        <th>PRODUCT NAME</th>
+                                        <th>QUANTITY</th>
+                                        <th>RATE</th>
+                                        <th>DISC %</th>
+                                        <th>GST %</th>
+                                        <th>LINE TOTAL</th>
+                                        <th>TAX MODE</th>
+                                        <th>ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in purchaseInvoiceModel.Items)
+                                    {
+                                        <tr>
+                                            <td>@item.ProductId</td>
+                                            <td>@item.ProductName</td>
+                                            <td>@item.Quantity</td>
+                                            <td>@(item.Rate.HasValue? item.Rate.Value.ToString("C") : "N/A")</td>
+                                            <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
+                                            <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
+                                            <td>@item.TaxMode</td>
+                                            <td>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="summary">
+                            <div class="form-item">
+                                <label class="form-label">Grand Total (incl. GST)</label>
+                                <InputNumber class="form-control" @bind-Value="purchaseInvoiceModel.TotalAmount" readonly />
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Purchase Invoice</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+    @* LIST VIEW *@
+    @if (!isFormVisible)
+    {
+        <div class="product-table-box">
+            <table class="table table-custom">
+                <thead>
+                    <tr style="background-color: #1e3a8a; color: white;">
+                        <th>PI ID</th>
+                        <th>SUPPLIER NAME</th>
+                        <th>INVOICE DATE</th>
+                        <th>DUE DATE</th>
+                        <th>TOTAL AMOUNT</th>
+                        <th>STATUS</th>
+                        <th style="width:180px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (filteredPurchaseInvoices.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center">No purchase invoices found.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var pi in filteredPurchaseInvoices)
+                        {
+                            <tr>
+                                <td>@pi.PIId</td>
+                                <td>@pi.SupplierName</td>
+                                <td>@(pi.InvoiceDate.HasValue? pi.InvoiceDate.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(pi.DueDate.HasValue? pi.DueDate.Value.ToShortDateString() : "N/A")</td>
+                                <td>@(pi.TotalAmount.HasValue? pi.TotalAmount.Value.ToString("C") : "N/A")</td>
+                                <td>@pi.Status</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditPurchaseInvoice(pi)"><i class="oi oi-pencil"></i></button>
+                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeletePurchaseInvoice(pi)"><i class="oi oi-trash"></i></button>
+                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseInvoice(pi.Id)">
+                                        <i class="oi oi-print"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+@code {
+    private List<MyBlazorServerApp.Models.PurchaseInvoice> purchaseInvoices = new();
+    private List<MyBlazorServerApp.Models.PurchaseInvoice> filteredPurchaseInvoices = new();
+    private MyBlazorServerApp.Models.PurchaseInvoice purchaseInvoiceModel = new();
+    private MyBlazorServerApp.Models.PurchaseInvoice? editingPurchaseInvoice;
+    private bool isFormVisible = false;
+    private string searchText = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private string? errorMessage;
+    private MyBlazorServerApp.Models.PurchaseInvoiceItem newItem = new();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPurchaseInvoices();
+        ApplyFilter();
+    }
+    private async Task LoadPurchaseInvoices()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            purchaseInvoices = await db.PurchaseInvoices.Include(p => p.Items).ToListAsync();
+            filteredPurchaseInvoices = purchaseInvoices.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading purchase invoices: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+    }
+    private void ShowAddForm()
+    {
+        editingPurchaseInvoice = null;
+        purchaseInvoiceModel = new MyBlazorServerApp.Models.PurchaseInvoice { Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>() };
+        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
+        isFormVisible = true;
+        errorMessage = null;
+    }
+    private void BackToList()
+    {
+        isFormVisible = false;
+        editingPurchaseInvoice = null;
+        errorMessage = null;
+    }
+    private async Task SavePurchaseInvoice()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            if (string.IsNullOrEmpty(purchaseInvoiceModel.PIId) || string.IsNullOrEmpty(purchaseInvoiceModel.SupplierName) || !purchaseInvoiceModel.InvoiceDate.HasValue)
+            {
+                errorMessage = "PI ID, Supplier, and Invoice Date are required.";
+                return;
+            }
+            int editIdValue = editingPurchaseInvoice?.Id ?? 0;
+            if (await db.PurchaseInvoices.AnyAsync(p => p.PIId == purchaseInvoiceModel.PIId && p.Id != editIdValue))
+            {
+                errorMessage = "A purchase invoice with this PI ID already exists.";
+                return;
+            }
+            if (purchaseInvoiceModel.Items.Any(i => string.IsNullOrEmpty(i.ProductName) || !i.Quantity.HasValue || !i.Rate.HasValue))
+            {
+                errorMessage = "All items must have Product Name, Quantity, and Rate filled.";
+                return;
+            }
+            if (editingPurchaseInvoice == null)
+            {
+                db.PurchaseInvoices.Add(purchaseInvoiceModel);
+            }
+            else
+            {
+                var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseInvoice.Id);
+                if (existingPI != null)
+                {
+                    existingPI.PIId = purchaseInvoiceModel.PIId;
+                    existingPI.SupplierName = purchaseInvoiceModel.SupplierName;
+                    existingPI.InvoiceDate = purchaseInvoiceModel.InvoiceDate;
+                    existingPI.DueDate = purchaseInvoiceModel.DueDate;
+                    existingPI.TotalAmount = purchaseInvoiceModel.TotalAmount;
+                    existingPI.Status = purchaseInvoiceModel.Status;
+                    existingPI.Remarks = purchaseInvoiceModel.Remarks;
+                    existingPI.Items.Clear();
+                    foreach (var item in purchaseInvoiceModel.Items)
+                    {
+                        db.PurchaseInvoiceItems.Add(item);
+                        existingPI.Items.Add(item);
+                    }
+                }
+            }
+            await db.SaveChangesAsync();
+            isFormVisible = false;
+            await LoadPurchaseInvoices();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving purchase invoice: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
+            Console.WriteLine($"Error saving purchase invoice: {ex.Message} - Inner Exception: {ex.InnerException?.Message}");
+        }
+    }
+    private void EditPurchaseInvoice(MyBlazorServerApp.Models.PurchaseInvoice pi)
+    {
+        editingPurchaseInvoice = pi;
+        purchaseInvoiceModel = new MyBlazorServerApp.Models.PurchaseInvoice
+        {
+            Id = pi.Id,
+            PIId = pi.PIId,
+            SupplierName = pi.SupplierName,
+            InvoiceDate = pi.InvoiceDate,
+            DueDate = pi.DueDate,
+            TotalAmount = pi.TotalAmount,
+            Status = pi.Status,
+            Remarks = pi.Remarks,
+            Items = pi.Items?.ToList() ?? new()
+        };
+        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
+        isFormVisible = true;
+        errorMessage = null;
+    }
+    private async Task DeletePurchaseInvoice(MyBlazorServerApp.Models.PurchaseInvoice pi)
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == pi.Id);
+            if (existingPI != null)
+            {
+                db.PurchaseInvoices.Remove(existingPI);
+                await db.SaveChangesAsync();
+                await LoadPurchaseInvoices();
+                ApplyFilter();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting purchase invoice: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+    }
+    private async Task PrintPurchaseInvoice(int id)
+    {
+        NavigationManager.NavigateTo($"/purchaseinvoiceprint/{id}");
+    }
+    private void ApplyFilter()
+    {
+        filteredPurchaseInvoices = purchaseInvoices
+            .Where(pi => string.IsNullOrEmpty(searchText) || pi.PIId.Contains(searchText, StringComparison.OrdinalIgnoreCase) || pi.SupplierName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
+        ApplyFilter();
+    }
+    private void AddItem()
+    {
+        if (purchaseInvoiceModel.Items == null) purchaseInvoiceModel.Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>();
+        if (string.IsNullOrEmpty(newItem.ProductName) || !newItem.Quantity.HasValue || !newItem.Rate.HasValue)
+        {
+            errorMessage = "Product Name, Quantity, and Rate are required for items.";
+            return;
+        }
+        newItem.LineTotal = CalculateLineTotal(newItem);
+        var newItemCopy = new MyBlazorServerApp.Models.PurchaseInvoiceItem
+        {
+            ProductId = Guid.NewGuid().ToString(),
+            ProductName = newItem.ProductName,
+            Category = newItem.Category,
+            Quantity = newItem.Quantity,
+            Rate = newItem.Rate,
+            DiscountPercent = newItem.DiscountPercent,
+            GSTPercent = newItem.GSTPercent,
+            TaxMode = newItem.TaxMode,
+            LineTotal = newItem.LineTotal
+        };
+        purchaseInvoiceModel.Items.Add(newItemCopy);
+        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
+        UpdateTotalAmount();
+        errorMessage = null;
+    }
+    private void RemoveItem(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
+    {
+        purchaseInvoiceModel.Items?.Remove(item);
+        UpdateTotalAmount();
+    }
+    private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
+    {
+        if (item.Quantity == null || item.Rate == null) return 0;
+        decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
+        decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
+        decimal taxableAmount = baseAmount - discount;
+        if (item.TaxMode == "Line Inclusive")
+        {
+            return taxableAmount;
+        }
+        else
+        {
+            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m;
+            return taxableAmount + gst;
+        }
+    }
+    private void UpdateTotalAmount()
+    {
+        purchaseInvoiceModel.TotalAmount = purchaseInvoiceModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
+    }
+    private void OnTaxModeChange(ChangeEventArgs e)
+    {
+        newItem.TaxMode = e.Value?.ToString();
+        UpdateLineTotal();
+    }
+    private void UpdateLineTotal()
+    {
+        newItem.LineTotal = CalculateLineTotal(newItem);
+    }
+}
+<style>
+    .main-card {
+        padding: 20px;
+    }
+
+    .header-container {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 24px;
+        color: #1e3a8a;
+    }
+
+    .subtitle {
+        margin: 5px 0;
+        color: #6c757d;
+    }
+
+    .action-container {
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-bar {
+        flex-grow: 1;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two, .grid-three {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .radio-input {
+        margin-right: 5px;
+    }
+
+    .form-actions {
+        margin-top: 10px;
+    }
+
+    .full-width {
+        width: 100%;
+    }
+
+    .items-table {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th,
+        .table-custom td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
+    .summary {
+        margin-top: 20px;
+    }
+
+    .product-table-box {
+        margin-top: 20px;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .me-1 {
+        margin-right: 0.25rem;
+    }
+</style>

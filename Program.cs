@@ -16,9 +16,16 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     )
 );
 
-// Add services for Blazor Server and Razor Pages
+// Add services for Blazor Server
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Configure Kestrel to use specified ports from launchSettings
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(5134); // HTTP port
+    options.ListenAnyIP(7256, listenOptions => listenOptions.UseHttps()); // HTTPS port
+});
 
 var app = builder.Build();
 
@@ -32,7 +39,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthorization(); // Added for potential authentication/authorization support
+app.UseAuthorization();
 
 // Apply migrations on startup in development mode
 if (app.Environment.IsDevelopment())
@@ -46,9 +53,7 @@ if (app.Environment.IsDevelopment())
     }
     catch (Exception ex)
     {
-        // Log the error and continue (prevent app crash in development)
-        Console.WriteLine($"An error occurred while applying migrations: {ex.Message}");
-        // Optionally, throw only if critical: throw;
+        Console.WriteLine($"Migration failed: {ex.Message}. Continuing without migration.");
     }
 }
 
