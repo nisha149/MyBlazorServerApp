@@ -164,8 +164,8 @@
         {
             if (db?.Customers != null)
             {
-                customers = await db.Customers.ToListAsync() ?? new List<Customer>(); // Removed IgnoreQueryFilters since we're hard deleting
-                filteredCustomers = customers.Where(c => !c.IsDeleted).ToList(); // This line can be simplified or removed if not needed
+                customers = await db.Customers.ToListAsync() ?? new List<Customer>();
+                filteredCustomers = customers.Where(c => !c.IsDeleted).ToList();
             }
             else
             {
@@ -183,7 +183,7 @@
         {
             if (db?.Customers != null)
             {
-                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id); // Removed IgnoreQueryFilters
+                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id);
                 if (customer != null)
                 {
                     editingCustomer = customer;
@@ -215,7 +215,7 @@
         {
             if (db?.Customers != null)
             {
-                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id); // Removed IgnoreQueryFilters
+                var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id);
                 if (customer != null)
                 {
                     editingCustomer = customer;
@@ -267,7 +267,7 @@
                 }
                 else
                 {
-                    var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == editingCustomer.Id); // Removed IgnoreQueryFilters
+                    var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
                     if (existingCustomer != null)
                     {
                         if (await db.Customers.AnyAsync(c => c.Code == customerModel.Code && c.Id != customerModel.Id))
@@ -319,10 +319,10 @@
         {
             if (db?.Customers != null)
             {
-                var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id); // Removed IgnoreQueryFilters
+                var existingCustomer = await db.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id);
                 if (existingCustomer != null)
                 {
-                    db.Customers.Remove(existingCustomer); // Hard delete instead of soft delete
+                    db.Customers.Remove(existingCustomer);
                     await db.SaveChangesAsync();
                     await LoadCustomers(db);
                     ApplyFilter();
@@ -385,6 +385,7 @@
         display: flex;
         justify-content: flex-end;
         gap: 10px;
+        flex-wrap: wrap;
     }
 
     .search-bar .form-control {
@@ -406,12 +407,16 @@
         background-color: #ADD8E6;
         color: darkblue;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .btn-danger {
         background-color: #FFCCCC;
         color: darkred;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .add-card {
@@ -428,6 +433,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
+        flex-wrap: wrap;
     }
 
     .grid-four {
@@ -463,6 +469,10 @@
 
     .pagination-info {
         margin-top: 10px;
+        text-align: right;
+        padding: 10px;
+        color: #1d3557;
+        font-size: 14px;
     }
 
     .alert {
@@ -478,5 +488,145 @@
         background-color: #f8d7da;
         border-color: #f5c6cb;
         color: #721c24;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .page-title
+
+    {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+    }
+
+    .action-container {
+        justify-content: center;
+    }
+
+    .search-bar .form-control {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .form-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .grid-four {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        text-align: center;
+    }
+
+    .customer-table-box table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .table-custom th, .table-custom td {
+        min-width: 100px;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .table-custom th {
+        white-space: nowrap;
+    }
+
+    .pagination-info {
+        text-align: center;
+    }
+
+    .btn-primary, .btn-warning, .btn-danger {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .page-title
+
+    {
+        font-size: 22px;
+    }
+
+    .subtitle {
+        font-size: 15px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .search-bar .form-control {
+        width: 180px;
+    }
+
+    .grid-four {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .pagination-info {
+        text-align: right;
+    }
+
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .page-title
+
+    {
+        font-size: 24px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .search-bar .form-control {
+        width: 200px;
+    }
+
+    .grid-four {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .pagination-info {
+        text-align: right;
+    }
+
     }
 </style>

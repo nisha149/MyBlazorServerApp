@@ -167,14 +167,12 @@
     private string searchText = string.Empty;
     private int currentPage = 1;
     private int pageSize = 5;
-
     protected override async Task OnInitializedAsync()
     {
         await LoadProducts();
         await LoadProductGroups();
         ApplyFilter();
     }
-
     private async Task LoadProducts()
     {
         try
@@ -190,7 +188,6 @@
             Console.WriteLine($"Error loading products: {ex.Message}");
         }
     }
-
     private async Task LoadProductGroups()
     {
         try
@@ -206,20 +203,17 @@
             Console.WriteLine($"Error loading product groups: {ex.Message}");
         }
     }
-
     private void ShowAddForm()
     {
         editingProduct = null;
         productModel = new Models.Product();
         isFormVisible = true;
     }
-
     private void BackToList()
     {
         isFormVisible = false;
         editingProduct = null;
     }
-
     private async Task SaveProduct()
     {
         try
@@ -229,18 +223,15 @@
             {
                 if (editingProduct == null)
                 {
-                    // New product
-                    // Let the database handle Id generation if it's an IDENTITY column
                     if (productModel.CategoryId.HasValue && !productGroups.Any(g => g.Id == productModel.CategoryId.Value))
                     {
                         Console.WriteLine("Invalid CategoryId selected.");
-                        return; // Prevent saving with invalid CategoryId
+                        return;
                     }
-                    db.Products.Add(productModel); // Add without manual Id assignment
+                    db.Products.Add(productModel);
                 }
                 else
                 {
-                    // Edit existing product
                     var existingProduct = await db.Products.FindAsync(editingProduct.Id);
                     if (existingProduct != null)
                     {
@@ -267,10 +258,8 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error saving product: {ex.Message}");
-            // Optionally, display an error to the user (e.g., via IJSRuntime or a message component)
         }
     }
-
     private void EditProduct(Models.Product product)
     {
         editingProduct = product;
@@ -291,7 +280,6 @@
         };
         isFormVisible = true;
     }
-
     private async Task DeleteProduct(Models.Product product)
     {
         using var db = DbFactory.CreateDbContext();
@@ -307,7 +295,6 @@
         await LoadProducts();
         ApplyFilter();
     }
-
     private void ApplyFilter()
     {
         filteredProducts = products
@@ -316,11 +303,10 @@
             .Take(pageSize)
             .ToList();
     }
-
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
-        currentPage = 1; // Reset to first page on search
+        currentPage = 1;
         ApplyFilter();
     }
 }
@@ -353,6 +339,7 @@
         display: flex;
         justify-content: flex-end;
         gap: 10px;
+        flex-wrap: wrap;
     }
 
     .search-bar .form-control {
@@ -374,12 +361,16 @@
         background-color: #ADD8E6;
         color: darkblue;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .btn-danger {
         background-color: #FFCCCC;
         color: darkred;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .add-card {
@@ -396,6 +387,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
+        flex-wrap: wrap;
     }
 
     .grid-four {
@@ -431,5 +423,149 @@
 
     .pagination-info {
         margin-top: 10px;
+        text-align: right;
+        padding: 10px;
+        color: #1d3557;
+        font-size: 14px;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .page-title
+
+    {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+    }
+
+    .action-container {
+        justify-content: center;
+    }
+
+    .search-bar .form-control {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .form-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .grid-four {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        text-align: center;
+    }
+
+    .product-table-box table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .table-custom th, .table-custom td {
+        min-width: 100px;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .table-custom th {
+        white-space: nowrap;
+    }
+
+    .pagination-info {
+        text-align: center;
+    }
+
+    .btn-primary, .btn-warning, .btn-danger {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .page-title
+
+    {
+        font-size: 22px;
+    }
+
+    .subtitle {
+        font-size: 15px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .search-bar .form-control {
+        width: 180px;
+    }
+
+    .grid-four {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .pagination-info {
+        text-align: right;
+    }
+
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .page-title
+
+    {
+        font-size: 24px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .search-bar .form-control {
+        width: 200px;
+    }
+
+    .grid-four {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .pagination-info {
+        text-align: right;
+    }
+
     }
 </style>

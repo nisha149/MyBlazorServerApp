@@ -8,7 +8,6 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject ILogger<MyBlazorServerApp.Pages.Supplier> Logger
-
 <div class="main-card">
     <div class="header-container">
         @if (!showForm)
@@ -137,7 +136,6 @@
         </div>
     }
 </div>
-
 <style>
     .main-card {
         background: #ffffff;
@@ -146,36 +144,30 @@
         padding: 20px;
         margin-bottom: 20px;
     }
-
     .header-container {
         margin-bottom: 20px;
     }
-
     .page-title {
         font-size: 24px;
         color: #1e3a8a;
         margin-bottom: 10px;
     }
-
     .subtitle {
         font-size: 16px;
         color: #1d3557;
         margin-bottom: 15px;
     }
-
     .action-container {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
     }
-
     .search-bar .form-control {
         width: 200px;
         padding: 5px;
         border: 1px solid #ccc;
         border-radius: 4px;
     }
-
     .btn-primary {
         background-color: #1e3a8a;
         color: white;
@@ -183,19 +175,16 @@
         padding: 5px 10px;
         border-radius: 4px;
     }
-
     .btn-warning {
         background-color: #ADD8E6;
         color: darkblue;
         border: none;
     }
-
     .btn-danger {
         background-color: #FFCCCC;
         color: darkred;
         border: none;
     }
-
     .add-card {
         background: #e0e2ea;
         border-radius: 10px;
@@ -204,52 +193,43 @@
         margin: 20px auto;
         width: 90%;
     }
-
     .form-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
     }
-
     .grid-four {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 12px;
     }
-
     .grid-two {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         margin-top: 12px;
     }
-
     .form-item {
         display: flex;
         flex-direction: column;
     }
-
     .form-actions {
         margin-top: 16px;
         text-align: right;
     }
-
     .customer-table-box {
         margin-top: 20px;
     }
-
     .table-custom {
         width: 100%;
         border-collapse: collapse;
     }
-
         .table-custom th, .table-custom td {
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
-
     .alert {
         padding: 10px;
         margin-bottom: 10px;
@@ -258,14 +238,146 @@
         background-color: #fff3cd;
         color: #856404;
     }
-
     .alert-danger {
         background-color: #f8d7da;
         border-color: #f5c6cb;
         color: #721c24;
     }
-</style>
 
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .main-card {
+            padding: 15px;
+        }
+        .page-title {
+            font-size: 20px;
+        }
+        .subtitle {
+            font-size: 14px;
+        }
+        .action-container {
+            flex-direction: column;
+            gap: 8px;
+        }
+        .search-bar .form-control {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .btn-primary {
+            width: 100%;
+        }
+        .form-header {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .grid-four {
+            grid-template-columns: 1fr 1fr;
+        }
+        .grid-two {
+            grid-template-columns: 1fr;
+        }
+        .add-card {
+            width: 100%;
+            padding: 15px;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .table-custom th, .table-custom td {
+            font-size: 12px;
+            padding: 6px;
+        }
+        .table-custom th {
+            display: none;
+        }
+        .table-custom td {
+            display: block;
+            padding-left: 50%;
+            position: relative;
+        }
+        .table-custom td:before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .table-custom td:nth-child(1):before { content: "Supplier ID"; }
+        .table-custom td:nth-child(2):before { content: "Name"; }
+        .table-custom td:nth-child(3):before { content: "Phone"; }
+        .table-custom td:nth-child(4):before { content: "Email"; }
+        .table-custom td:nth-child(5):before { content: "Address"; }
+        .table-custom td:nth-child(6):before { content: "Status"; }
+        .table-custom td:nth-child(7) {
+            padding-left: 10px;
+            text-align: center;
+        }
+        .table-custom td:nth-child(7):before { content: "Actions"; }
+        .btn-warning, .btn-danger {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .main-card {
+            padding: 18px;
+        }
+        .page-title {
+            font-size: 22px;
+        }
+        .subtitle {
+            font-size: 15px;
+        }
+        .action-container {
+            gap: 8px;
+        }
+        .search-bar .form-control {
+            width: 180px;
+        }
+        .grid-four {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .add-card {
+            width: 95%;
+        }
+        .table-custom th, .table-custom td {
+            font-size: 14px;
+            padding: 8px;
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .main-card {
+            padding: 20px;
+        }
+        .page-title {
+            font-size: 24px;
+        }
+        .subtitle {
+            font-size: 16px;
+        }
+        .action-container {
+            gap: 10px;
+        }
+        .search-bar .form-control {
+            width: 200px;
+        }
+        .grid-four {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .add-card {
+            width: 90%;
+        }
+        .table-custom th, .table-custom td {
+            font-size: 16px;
+            padding: 10px;
+        }
+    }
+</style>
 @code {
     private List<SupplierModel> suppliers = new();
     private List<SupplierModel> filteredSuppliers = new();
@@ -274,13 +386,11 @@
     private bool showForm = false;
     private string searchTerm = string.Empty;
     private string errorMessage = string.Empty;
-
     protected override async Task OnInitializedAsync()
     {
         await LoadSuppliers();
         ApplyFilter();
     }
-
     private async Task LoadSuppliers()
     {
         try
@@ -296,7 +406,6 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
-
     private async Task SaveSuppliers()
     {
         try
@@ -326,7 +435,6 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
-
     private void ToggleForm()
     {
         showForm = true;
@@ -336,7 +444,6 @@
             SupplierId = string.Empty // Changed to empty string instead of GUID
         };
     }
-
     private void EditSupplier(SupplierModel supplier)
     {
         editSupplier = supplier;
@@ -353,7 +460,6 @@
         };
         showForm = true;
     }
-
     private async Task DeleteSupplier(SupplierModel supplier)
     {
         try
@@ -375,24 +481,20 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
-
     private async Task HandleSubmit()
     {
         await SaveSuppliers();
         showForm = false;
     }
-
     private void CancelForm()
     {
         showForm = false;
     }
-
     private void BackToList()
     {
         showForm = false;
         ApplyFilter();
     }
-
     private void ApplyFilter()
     {
         filteredSuppliers = string.IsNullOrEmpty(searchTerm)
@@ -404,7 +506,6 @@
                                   s.Address.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                                   s.Status.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
     }
-
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchTerm = e.Value?.ToString() ?? string.Empty;

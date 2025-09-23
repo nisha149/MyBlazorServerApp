@@ -5,7 +5,6 @@
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
-
 <div class="print-wrapper">
     <!-- LEFT SIDE: Custom Print Dialog Panel -->
     <div class="print-sidebar">
@@ -149,18 +148,15 @@
         }
     </div>
 </div>
-
 @code {
     [Parameter]
     public int Id { get; set; }
     private MyBlazorServerApp.Models.PurchaseInvoice? purchaseInvoice;
     private string? errorMessage;
-
     protected override async Task OnInitializedAsync()
     {
         await LoadPurchaseInvoice();
     }
-
     private async Task LoadPurchaseInvoice()
     {
         try
@@ -179,30 +175,25 @@
             Console.WriteLine(errorMessage);
         }
     }
-
     private decimal SubTotal => purchaseInvoice?.Items.Sum(i => (i.Quantity ?? 0) * (i.Rate ?? 0)) ?? 0;
     private decimal Discount => purchaseInvoice?.Items.Sum(i => ((i.Quantity ?? 0) * (i.Rate ?? 0)) * ((i.DiscountPercent ?? 0) / 100)) ?? 0;
     private decimal Tax => purchaseInvoice?.Items.Sum(i => (((i.Quantity ?? 0) * (i.Rate ?? 0)) - (((i.Quantity ?? 0) * (i.Rate ?? 0)) * ((i.DiscountPercent ?? 0) / 100))) * ((i.GSTPercent ?? 0) / 100)) ?? 0;
     private decimal GrandTotal => SubTotal - Discount + Tax;
-
     private async Task PerformPrint()
     {
         await JSRuntime.InvokeVoidAsync("printCustom", "print-section");
     }
-
     private void CancelPrint()
     {
         NavigationManager.NavigateTo("/purchaseinvoice");
     }
 }
-
 <style>
     .print-wrapper {
         display: flex;
         height: 100vh;
         overflow: hidden;
     }
-
     .print-sidebar {
         width: 250px;
         background: #f8f9fa;
@@ -210,47 +201,38 @@
         border-right: 1px solid #dee2e6;
         overflow-y: auto;
     }
-
     .print-header {
         margin-bottom: 15px;
     }
-
         .print-header h4 {
             margin: 0;
             color: #1e3a8a;
         }
-
     .total-sheets {
         font-size: 14px;
         color: #6c757d;
         margin: 5px 0;
     }
-
     .print-sidebar label {
         font-weight: bold;
         margin-bottom: 5px;
         display: block;
     }
-
     .form-select, .form-control {
         width: 100%;
         margin-bottom: 10px;
     }
-
     .radio-group {
         margin-bottom: 10px;
     }
-
         .radio-group label {
             display: block;
             margin-bottom: 5px;
         }
-
     .button-section {
         margin-top: 20px;
         text-align: center;
     }
-
     .btn-primary {
         background-color: #1e3a8a;
         color: white;
@@ -259,7 +241,6 @@
         border-radius: 4px;
         margin-right: 10px;
     }
-
     .btn-secondary {
         background-color: #6c757d;
         color: white;
@@ -267,90 +248,194 @@
         padding: 8px 15px;
         border-radius: 4px;
     }
-
     .print-preview {
         flex: 1;
         padding: 20px;
         overflow-y: auto;
         background: white;
     }
-
     .print-container {
         font-family: Arial, sans-serif;
         max-width: 800px;
         margin: 0 auto;
     }
-
     .header-column .company-details h2 {
         margin: 0 0 10px 0;
         color: #1e3a8a;
     }
-
     .header-column .po-details p {
         margin: 5px 0;
     }
-
     .po-header h3 {
         margin: 0;
         color: #1e3a8a;
         font-size: 1.5em;
         text-transform: uppercase;
     }
-
     .supplier-section {
         border: 1px solid #ddd;
         padding: 10px;
     }
-
     .supplier-row {
         display: flex;
         justify-content: space-between;
         margin-bottom: 5px;
     }
-
         .supplier-row p {
             margin: 0;
         }
-
     .table th, .table td {
         border: 1px solid #ccc;
         padding: 8px;
         text-align: left;
     }
-
     .totals p {
         margin: 5px 0;
     }
-
     .notes-section, .terms-section {
         margin: 10px 0;
     }
-
         .notes-section p, .terms-section p {
             color: #1e3a8a;
         }
-
     .generated-section, .thank-you {
         margin: 10px 0;
         text-align: center;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .print-wrapper {
+            flex-direction: column;
+            height: auto;
+        }
+        .print-sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 15px;
+        }
+        .print-preview {
+            flex: none;
+            padding: 15px;
+        }
+        .print-header h4 {
+            font-size: 18px;
+        }
+        .total-sheets {
+            font-size: 12px;
+        }
+        .form-select, .form-control {
+            font-size: 14px;
+        }
+        .radio-group label {
+            font-size: 14px;
+        }
+        .button-section {
+            margin-top: 15px;
+        }
+        .btn-primary, .btn-secondary {
+            width: 48%;
+            margin-right: 0;
+            margin-bottom: 5px;
+        }
+        .print-container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        .header-column {
+            flex-direction: column;
+            text-align: center;
+        }
+        .company-details, .po-details {
+            width: 100%;
+            text-align: center;
+        }
+        .po-details {
+            margin-top: 10px;
+        }
+        .supplier-row {
+            flex-direction: column;
+            text-align: center;
+        }
+        .table th, .table td {
+            padding: 6px;
+            font-size: 12px;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .print-sidebar {
+            width: 200px;
+        }
+        .print-header h4 {
+            font-size: 20px;
+        }
+        .total-sheets {
+            font-size: 13px;
+        }
+        .form-select, .form-control {
+            font-size: 14px;
+        }
+        .radio-group label {
+            font-size: 14px;
+        }
+        .print-preview {
+            padding: 15px;
+        }
+        .print-container {
+            max-width: 700px;
+        }
+        .table th, .table td {
+            padding: 6px;
+            font-size: 14px;
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .print-sidebar {
+            width: 250px;
+        }
+        .print-header h4 {
+            font-size: 24px;
+        }
+        .total-sheets {
+            font-size: 14px;
+        }
+        .form-select, .form-control {
+            font-size: 16px;
+        }
+        .radio-group label {
+            font-size: 16px;
+        }
+        .print-preview {
+            padding: 20px;
+        }
+        .print-container {
+            max-width: 800px;
+        }
+        .table th, .table td {
+            padding: 8px;
+            font-size: 16px;
+        }
     }
 
     @@media print {
         .print-wrapper {
             display: block !important;
         }
-
         .print-sidebar {
             display: none !important;
         }
-
         .print-preview {
             width: 100% !important;
             height: auto !important;
             padding: 0 !important;
             margin: 0 !important;
         }
-
         .print-container {
             box-shadow: none !important;
             border: none !important;
@@ -359,69 +444,56 @@
             padding: 20px !important;
             page-break-inside: avoid !important;
         }
-
         .header-column {
             display: flex !important;
             justify-content: space-between !important;
             margin-bottom: 20px !important;
         }
-
         .company-details, .po-details {
             width: 50% !important;
             text-align: left !important;
         }
-
         .po-details {
             text-align: right !important;
         }
-
         .po-header {
             margin-bottom: 20px !important;
             border-bottom: 1px solid #ddd !important;
             padding-bottom: 10px !important;
         }
-
         .supplier-section {
             margin-bottom: 20px !important;
             border: 1px solid #ddd !important;
             padding: 10px !important;
         }
-
         .supplier-row {
             display: flex !important;
             justify-content: space-between !important;
             margin-bottom: 5px !important;
         }
-
         .table {
             width: 100% !important;
             margin-bottom: 20px !important;
             page-break-inside: auto !important;
         }
-
         .totals {
             text-align: right !important;
             margin-bottom: 20px !important;
         }
-
         .notes-section, .terms-section {
             margin: 10px 0 !important;
             text-align: left !important;
         }
-
         .generated-section, .thank-you {
             text-align: center !important;
             margin: 10px 0 !important;
         }
-
         body > *:not(#print-section) {
             display: none !important;
         }
-
         #print-section, #print-section * {
             visibility: visible !important;
         }
-
         #print-section {
             position: relative !important;
             left: 0 !important;
@@ -430,7 +502,6 @@
         }
     }
 </style>
-
 <script>
     window.printCustom = function (elementId) {
         var printContents = document.getElementById(elementId).innerHTML;

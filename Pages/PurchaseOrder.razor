@@ -412,101 +412,227 @@
 }
 <style>
     .main-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         padding: 20px;
+        margin-bottom: 20px;
     }
-
     .header-container {
         margin-bottom: 20px;
     }
-
     .page-title {
         margin: 0;
         font-size: 24px;
         color: #1e3a8a;
     }
-
     .subtitle {
         margin: 5px 0;
         color: #6c757d;
     }
-
     .action-container {
         display: flex;
         gap: 10px;
+        flex-wrap: wrap;
     }
-
     .search-bar {
         flex-grow: 1;
     }
-
     .form-control {
         width: 100%;
         padding: 8px;
         margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
     }
-
     .grid-two, .grid-three {
         display: grid;
         gap: 10px;
         margin-bottom: 10px;
     }
-
     .grid-two {
         grid-template-columns: 1fr 1fr;
     }
-
     .grid-three {
         grid-template-columns: 1fr 1fr 1fr;
     }
-
     .form-item {
         display: flex;
         flex-direction: column;
     }
-
     .form-label {
         margin-bottom: 5px;
         font-weight: bold;
     }
-
     .radio-group {
         display: flex;
         gap: 10px;
     }
-
     .radio-input {
         margin-right: 5px;
     }
-
     .form-actions {
         margin-top: 10px;
     }
-
     .full-width {
         width: 100%;
     }
-
     .items-table {
         margin-top: 20px;
     }
-
     .table-custom {
         width: 100%;
         border-collapse: collapse;
     }
-
-        .table-custom th,
-        .table-custom td {
-            padding: 8px;
-            text-align: left;
-            border: 1px solid #dee2e6;
-        }
-
+    .table-custom th,
+    .table-custom td {
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #dee2e6;
+    }
     .summary {
         margin-top: 20px;
     }
-
     .product-table-box {
         margin-top: 20px;
+    }
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    .btn-warning {
+        background-color: #ffc107;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    .me-1 {
+        margin-right: 0.25rem;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .page-title {
+            font-size: 20px;
+        }
+        .subtitle {
+            font-size: 14px;
+        }
+        .action-container {
+            justify-content: center;
+        }
+        .search-bar .form-control {
+            width: 100%;
+            max-width: 200px;
+        }
+        .form-container .page-title {
+            font-size: 18px;
+        }
+        .grid-two, .grid-three {
+            grid-template-columns: 1fr;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .items-table table, .product-table-box table {
+            display: block;
+            overflow-x: auto;
+        }
+        .table-custom th, .table-custom td {
+            min-width: 100px;
+            padding: 6px;
+            font-size: 12px;
+        }
+        .table-custom th {
+            white-space: nowrap;
+        }
+        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .page-title {
+            font-size: 22px;
+        }
+        .subtitle {
+            font-size: 15px;
+        }
+        .action-container {
+            justify-content: flex-end;
+        }
+        .search-bar .form-control {
+            width: 180px;
+        }
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
+        .grid-three {
+            grid-template-columns: 1fr 1fr;
+        }
+        .form-actions {
+            text-align: right;
+        }
+        .table-custom th, .table-custom td {
+            padding: 6px;
+            font-size: 14px;
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .page-title {
+            font-size: 24px;
+        }
+        .subtitle {
+            font-size: 16px;
+        }
+        .action-container {
+            justify-content: flex-end;
+        }
+        .search-bar .form-control {
+            width: 200px;
+        }
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
+        .grid-three {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .form-actions {
+            text-align: right;
+        }
+        .table-custom th, .table-custom td {
+            padding: 8px;
+            font-size: 16px;
+        }
     }
 </style>

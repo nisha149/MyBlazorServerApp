@@ -3,7 +3,6 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
-
 <div class="main-card">
     <div class="header-container">
         <h3 class="page-title">Product Groups</h3>
@@ -70,14 +69,12 @@
         </div>
     }
 </div>
-
 @code {
     private List<MyBlazorServerApp.Models.ProductGroup> productGroups = new();
     private MyBlazorServerApp.Models.ProductGroup groupModel = new();
     private MyBlazorServerApp.Models.ProductGroup? editingGroup;
     private bool isFormVisible = false;
     private string errorMessage = "";
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -101,7 +98,6 @@
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
-
     private async Task LoadGroups(AppDbContext db)
     {
         try
@@ -114,20 +110,17 @@
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
-
     private void ShowAddForm()
     {
         editingGroup = null;
         groupModel = new MyBlazorServerApp.Models.ProductGroup();
         isFormVisible = true;
     }
-
     private void BackToList()
     {
         isFormVisible = false;
         editingGroup = null;
     }
-
     private async Task SaveGroup()
     {
         try
@@ -177,7 +170,6 @@
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
-
     private void EditGroup(MyBlazorServerApp.Models.ProductGroup group)
     {
         editingGroup = group;
@@ -188,7 +180,6 @@
         };
         isFormVisible = true;
     }
-
     private async Task DeleteGroup(MyBlazorServerApp.Models.ProductGroup group)
     {
         try
@@ -212,7 +203,6 @@
         }
     }
 }
-
 <style>
     .main-card {
         background: #ffffff;
@@ -256,12 +246,16 @@
         background-color: #ADD8E6;
         color: darkblue;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .btn-danger {
         background-color: #FFCCCC;
         color: darkred;
         border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
     }
 
     .add-card {
@@ -271,13 +265,6 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin: 20px auto;
         width: 90%;
-    }
-
-    .form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
     }
 
     .form-item {
@@ -290,6 +277,7 @@
         padding: 5px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        width: 100%;
     }
 
     .form-actions {
@@ -325,5 +313,114 @@
         background-color: #f8d7da;
         border-color: #f5c6cb;
         color: #721c24;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .page-title
+
+    {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+    }
+
+    .action-container {
+        justify-content: center;
+    }
+
+    .add-card {
+        width: 100%;
+    }
+
+    .form-actions {
+        text-align: center;
+    }
+
+    .customer-table-box table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .table-custom th, .table-custom td {
+        min-width: 100px;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .table-custom th {
+        white-space: nowrap;
+    }
+
+    .btn-primary, .btn-warning, .btn-danger {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .page-title
+
+    {
+        font-size: 22px;
+    }
+
+    .subtitle {
+        font-size: 15px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .add-card {
+        width: 85%;
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .page-title
+
+    {
+        font-size: 24px;
+    }
+
+    .subtitle {
+        font-size: 16px;
+    }
+
+    .action-container {
+        justify-content: flex-end;
+    }
+
+    .add-card {
+        width: 90%;
+    }
+
+    .form-actions {
+        text-align: right;
+    }
+
+    .table-custom th, .table-custom td {
+        padding: 10px;
+        font-size: 16px;
+    }
+
     }
 </style>

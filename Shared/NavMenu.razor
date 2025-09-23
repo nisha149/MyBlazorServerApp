@@ -1,5 +1,4 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
-
 <nav class="nav flex-column p-3">
     <NavLink href="/" Match="NavLinkMatch.All" class="nav-link">
         <span class="oi oi-home" aria-hidden="true"></span> Home
@@ -8,38 +7,95 @@
         <span class="oi oi-people" aria-hidden="true"></span> Customers
     </NavLink>
 </nav>
-
 @code {
     private bool collapseNavMenu = true;
-
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
 }
-
 <style>
     .nav-link {
         font-size: 1.1rem;
         padding: 0.5rem 1rem;
         color: #1e3a8a;
+        display: flex;
+        align-items: center;
     }
-
         .nav-link.active {
             background-color: #e0e2ea;
             border-radius: 4px;
         }
-
         .nav-link:hover {
             background-color: #f1f3f5;
             text-decoration: none;
         }
-
     .oi {
         width: 1.5rem;
         height: 1.5rem;
         margin-right: 0.5rem;
+    }
+    .nav {
+        background-color: #ffffff;
+        border-right: 1px solid #dee2e6;
+        height: 100vh;
+        position: fixed;
+        width: 250px;
+        transition: width 0.3s ease;
+        overflow-y: auto;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        /* Mobile View */
+        .nav {
+            width: 0;
+            transform: translateX(-250px);
+            padding: 0;
+        }
+        .nav.collapse {
+            width: 250px;
+            transform: translateX(0);
+            padding: 1rem;
+        }
+        .nav-link {
+            font-size: 1rem;
+            padding: 0.4rem 0.8rem;
+        }
+        .oi {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        /* Tablet View */
+        .nav {
+            width: 200px;
+        }
+        .nav-link {
+            font-size: 1.05rem;
+            padding: 0.45rem 0.9rem;
+        }
+        .oi {
+            width: 1.3rem;
+            height: 1.3rem;
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        /* Desktop View */
+        .nav {
+            width: 250px;
+        }
+        .nav-link {
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+        }
+        .oi {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
     }
 </style>
