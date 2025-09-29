@@ -1,9 +1,12 @@
 ﻿@page "/products"
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.JSInterop
+@using Microsoft.EntityFrameworkCore
 @using MyBlazorServerApp.Models
+@using MyBlazorServerApp.Data
 @inject IJSRuntime JSRuntime
 @inject IDbContextFactory<AppDbContext> DbFactory
+
 <div class="main-card">
     <div class="header-container">
         @if (!isFormVisible)
@@ -32,7 +35,11 @@
             <div class="inner-box">
                 <EditForm Model="productModel" OnValidSubmit="SaveProduct">
                     <DataAnnotationsValidator />
-                    <ValidationSummary />
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <ValidationSummary class="alert alert-danger" />
                     <div class="grid-four">
                         <!-- Row 1 -->
                         <div class="form-item">
@@ -47,7 +54,16 @@
                         </div>
                         <div class="form-item">
                             <label class="form-label">Product ID</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.Id" disabled="@(editingProduct != null)" />
+                            @if (editingProduct != null)
+                            {
+                                <InputNumber class="form-control" @bind-Value="productModel.Id" disabled="true" title="Cannot edit Product ID." />
+                                <small class="form-text text-muted">Product ID cannot be changed when editing.</small>
+                            }
+                            else
+                            {
+                                <InputNumber class="form-control" @bind-Value="productModel.Id" title="Enter a unique Product ID" />
+                                <small class="form-text text-muted">Enter a unique Product ID.</small>
+                            }
                         </div>
                         <div class="form-item">
                             <label class="form-label">Product Name</label>
@@ -55,7 +71,7 @@
                         </div>
                         <div class="form-item">
                             <label class="form-label">HSN Code</label>
-                            <InputText class="form-control" @bind-Value="productModel.HsnCode" />
+                            <InputText class="form-control" @bind-Value="productModel.HsnCode" maxlength="20" />
                         </div>
                         <!-- Row 2 -->
                         <div class="form-item">
@@ -72,11 +88,11 @@
                         </div>
                         <div class="form-item">
                             <label class="form-label">Purchase Rate</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.NextPurchaseRate" />
+                            <InputNumber class="form-control" @bind-Value="productModel.NextPurchaseRate" step="0.0001" />
                         </div>
                         <div class="form-item">
                             <label class="form-label">GST (%)</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.GstPercentage" />
+                            <InputNumber class="form-control" @bind-Value="productModel.GstPercentage" step="0.01" />
                         </div>
                         <div class="form-item">
                             <label class="form-label">Stock Quantity</label>
@@ -85,15 +101,15 @@
                         <!-- Row 3 -->
                         <div class="form-item">
                             <label class="form-label">MRP</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.Mrp" />
+                            <InputNumber class="form-control" @bind-Value="productModel.Mrp" step="0.01" />
                         </div>
                         <div class="form-item">
                             <label class="form-label">Discount (%)</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.DiscountPercentage" />
+                            <InputNumber class="form-control" @bind-Value="productModel.DiscountPercentage" step="0.01" />
                         </div>
                         <div class="form-item">
                             <label class="form-label">Retail Rate</label>
-                            <InputNumber class="form-control" @bind-Value="productModel.RetailRate" />
+                            <InputNumber class="form-control" @bind-Value="productModel.RetailRate" step="0.0001" />
                         </div>
                         <div class="form-item">
                             <label class="form-label">Reorder Level</label>
@@ -157,22 +173,26 @@
         </div>
     }
 </div>
+
 @code {
     private List<Models.Product> products = new();
     private List<Models.Product> filteredProducts = new();
     private List<Models.ProductGroup> productGroups = new();
-    private Models.Product productModel = new();
+    private Models.Product productModel = new() { Id = 1, ReorderLevel = 0, StockQuantity = 0 };
     private Models.Product? editingProduct;
     private bool isFormVisible = false;
     private string searchText = string.Empty;
     private int currentPage = 1;
     private int pageSize = 5;
+    private string? errorMessage;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadProducts();
         await LoadProductGroups();
         ApplyFilter();
     }
+
     private async Task LoadProducts()
     {
         try
@@ -185,9 +205,11 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading products: {ex.Message}");
+            errorMessage = $"Error loading products: {ex.Message}";
+            Console.WriteLine(errorMessage);
         }
     }
+
     private async Task LoadProductGroups()
     {
         try
@@ -200,66 +222,154 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading product groups: {ex.Message}");
+            errorMessage = $"Error loading product groups: {ex.Message}";
+            Console.WriteLine(errorMessage);
         }
     }
+
     private void ShowAddForm()
     {
         editingProduct = null;
-        productModel = new Models.Product();
+        productModel = new Models.Product { Id = 1, ReorderLevel = 0, StockQuantity = 0 };
         isFormVisible = true;
+        errorMessage = null;
     }
+
     private void BackToList()
     {
         isFormVisible = false;
         editingProduct = null;
+        productModel = new Models.Product { Id = 1, ReorderLevel = 0, StockQuantity = 0 };
+        errorMessage = null;
     }
+
     private async Task SaveProduct()
     {
         try
         {
             using var db = DbFactory.CreateDbContext();
-            if (db != null)
+            if (db == null)
             {
-                if (editingProduct == null)
+                errorMessage = "Database context is not available.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+
+            Console.WriteLine($"Saving product: Id={productModel.Id}, Name={productModel.Name}, ReorderLevel={productModel.ReorderLevel}, StockQuantity={productModel.StockQuantity}");
+            if (productModel.Id <= 0)
+            {
+                errorMessage = "Product ID must be a positive number.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+            if (string.IsNullOrEmpty(productModel.Name))
+            {
+                errorMessage = "Product Name is required.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+            if (productModel.ReorderLevel < 0 || productModel.StockQuantity < 0)
+            {
+                errorMessage = "Reorder Level and Stock Quantity cannot be negative.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+            if (productModel.CategoryId.HasValue && !productGroups.Any(g => g.Id == productModel.CategoryId.Value))
+            {
+                errorMessage = "Invalid Category selected.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+            if (!string.IsNullOrEmpty(productModel.HsnCode) && productModel.HsnCode.Length > 20)
+            {
+                errorMessage = "HSN Code must not exceed 20 characters.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+
+            // Check for duplicate Id
+            var existingProductForIdCheck = await db.Products.FindAsync(productModel.Id);
+            if (existingProductForIdCheck != null && (editingProduct == null || existingProductForIdCheck.Id != productModel.Id))
+            {
+                errorMessage = "Product ID already exists. Choose a unique ID.";
+                Console.WriteLine(errorMessage);
+                return;
+            }
+
+            // Validate decimal precision
+            string[] decimalFields = {
+                productModel.NextPurchaseRate?.ToString() ?? "0",
+                productModel.GstPercentage?.ToString() ?? "0",
+                productModel.Mrp?.ToString() ?? "0",
+                productModel.RetailRate?.ToString() ?? "0",
+                productModel.DiscountPercentage?.ToString() ?? "0"
+            };
+            string[] fieldNames = { "Purchase Rate", "GST %", "MRP", "Retail Rate", "Discount %" };
+            for (int i = 0; i < decimalFields.Length; i++)
+            {
+                var parts = decimalFields[i].Split('.');
+                if (parts.Length > 1)
                 {
-                    if (productModel.CategoryId.HasValue && !productGroups.Any(g => g.Id == productModel.CategoryId.Value))
+                    int decimalPlaces = parts[1].Length;
+                    if ((i == 0 || i == 3) && decimalPlaces > 4) // NextPurchaseRate, RetailRate
                     {
-                        Console.WriteLine("Invalid CategoryId selected.");
+                        errorMessage = $"{fieldNames[i]} exceeds 4 decimal places.";
+                        Console.WriteLine(errorMessage);
                         return;
                     }
-                    db.Products.Add(productModel);
-                }
-                else
-                {
-                    var existingProduct = await db.Products.FindAsync(editingProduct.Id);
-                    if (existingProduct != null)
+                    if ((i == 1 || i == 4) && decimalPlaces > 2) // GstPercentage, DiscountPercentage
                     {
-                        existingProduct.Name = productModel.Name;
-                        existingProduct.CategoryId = productModel.CategoryId;
-                        existingProduct.HsnCode = productModel.HsnCode;
-                        existingProduct.Unit = productModel.Unit;
-                        existingProduct.NextPurchaseRate = productModel.NextPurchaseRate;
-                        existingProduct.GstPercentage = productModel.GstPercentage;
-                        existingProduct.StockQuantity = productModel.StockQuantity;
-                        existingProduct.Mrp = productModel.Mrp;
-                        existingProduct.DiscountPercentage = productModel.DiscountPercentage;
-                        existingProduct.RetailRate = productModel.RetailRate;
-                        existingProduct.ReorderLevel = productModel.ReorderLevel;
+                        errorMessage = $"{fieldNames[i]} exceeds 2 decimal places.";
+                        Console.WriteLine(errorMessage);
+                        return;
+                    }
+                    if (i == 2 && decimalPlaces > 2) // Mrp
+                    {
+                        errorMessage = $"{fieldNames[i]} exceeds 2 decimal places.";
+                        Console.WriteLine(errorMessage);
+                        return;
                     }
                 }
-                await db.SaveChangesAsync();
-                Console.WriteLine("Product saved successfully.");
-                isFormVisible = false;
-                await LoadProducts();
-                ApplyFilter();
             }
+
+            if (editingProduct == null)
+            {
+                db.Products.Add(productModel);
+            }
+            else
+            {
+                var existingProduct = await db.Products.FindAsync(editingProduct.Id);
+                if (existingProduct != null)
+                {
+                    existingProduct.Name = productModel.Name;
+                    existingProduct.CategoryId = productModel.CategoryId;
+                    existingProduct.HsnCode = productModel.HsnCode;
+                    existingProduct.Unit = productModel.Unit;
+                    existingProduct.NextPurchaseRate = productModel.NextPurchaseRate;
+                    existingProduct.GstPercentage = productModel.GstPercentage;
+                    existingProduct.StockQuantity = productModel.StockQuantity;
+                    existingProduct.Mrp = productModel.Mrp;
+                    existingProduct.DiscountPercentage = productModel.DiscountPercentage;
+                    existingProduct.RetailRate = productModel.RetailRate;
+                    existingProduct.ReorderLevel = productModel.ReorderLevel;
+                }
+            }
+
+            await db.SaveChangesAsync();
+            Console.WriteLine("Product saved successfully.");
+            isFormVisible = false;
+            productModel = new Models.Product { Id = 1, ReorderLevel = 0, StockQuantity = 0 };
+            errorMessage = "Product saved successfully.";
+            await LoadProducts();
+            ApplyFilter();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving product: {ex.Message}");
+            errorMessage = $"Error saving product: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
+            Console.WriteLine(errorMessage);
         }
     }
+
     private void EditProduct(Models.Product product)
     {
         editingProduct = product;
@@ -279,22 +389,33 @@
             ReorderLevel = product.ReorderLevel
         };
         isFormVisible = true;
+        errorMessage = null;
     }
+
     private async Task DeleteProduct(Models.Product product)
     {
-        using var db = DbFactory.CreateDbContext();
-        if (db != null)
+        try
         {
-            var existingProduct = await db.Products.FindAsync(product.Id);
-            if (existingProduct != null)
+            using var db = DbFactory.CreateDbContext();
+            if (db != null)
             {
-                db.Products.Remove(existingProduct);
-                await db.SaveChangesAsync();
+                var existingProduct = await db.Products.FindAsync(product.Id);
+                if (existingProduct != null)
+                {
+                    db.Products.Remove(existingProduct);
+                    await db.SaveChangesAsync();
+                }
             }
+            await LoadProducts();
+            ApplyFilter();
         }
-        await LoadProducts();
-        ApplyFilter();
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting product: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
     }
+
     private void ApplyFilter()
     {
         filteredProducts = products
@@ -303,6 +424,7 @@
             .Take(pageSize)
             .ToList();
     }
+
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
@@ -310,6 +432,7 @@
         ApplyFilter();
     }
 }
+
 <style>
     .main-card {
         background: #ffffff;
@@ -318,37 +441,31 @@
         padding: 20px;
         margin-bottom: 20px;
     }
-
     .header-container {
         margin-bottom: 20px;
     }
-
     .page-title {
         font-size: 24px;
         color: #1e3a8a;
         margin-bottom: 10px;
     }
-
     .subtitle {
         font-size: 16px;
         color: #1d3557;
         margin-bottom: 15px;
     }
-
     .action-container {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
         flex-wrap: wrap;
     }
-
     .search-bar .form-control {
         width: 200px;
         padding: 5px;
         border: 1px solid #ccc;
         border-radius: 4px;
     }
-
     .btn-primary {
         background-color: #1e3a8a;
         color: white;
@@ -356,7 +473,6 @@
         padding: 5px 10px;
         border-radius: 4px;
     }
-
     .btn-warning {
         background-color: #ADD8E6;
         color: darkblue;
@@ -364,7 +480,6 @@
         padding: 5px 10px;
         border-radius: 4px;
     }
-
     .btn-danger {
         background-color: #FFCCCC;
         color: darkred;
@@ -372,7 +487,6 @@
         padding: 5px 10px;
         border-radius: 4px;
     }
-
     .add-card {
         background: #e0e2ea;
         border-radius: 10px;
@@ -381,7 +495,6 @@
         margin: 20px auto;
         width: 90%;
     }
-
     .form-header {
         display: flex;
         justify-content: space-between;
@@ -389,38 +502,31 @@
         margin-bottom: 15px;
         flex-wrap: wrap;
     }
-
     .grid-four {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 12px;
     }
-
     .form-item {
         display: flex;
         flex-direction: column;
     }
-
     .form-actions {
         margin-top: 16px;
         text-align: right;
     }
-
     .product-table-box {
         margin-top: 20px;
     }
-
     .table-custom {
         width: 100%;
         border-collapse: collapse;
     }
-
-        .table-custom th, .table-custom td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
+    .table-custom th, .table-custom td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
     .pagination-info {
         margin-top: 10px;
         text-align: right;
@@ -428,144 +534,47 @@
         color: #1d3557;
         font-size: 14px;
     }
-
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
     /* Responsive Adjustments */
     @@media (max-width: 768px) {
-        /* Mobile View */
-        .page-title
-
-    {
-        font-size: 20px;
+        .page-title { font-size: 20px; }
+        .subtitle { font-size: 14px; }
+        .action-container { justify-content: center; }
+        .search-bar .form-control { width: 100%; max-width: 200px; }
+        .form-header { flex-direction: column; gap: 10px; text-align: center; }
+        .grid-four { grid-template-columns: 1fr; }
+        .form-actions { text-align: center; }
+        .product-table-box table { display: block; overflow-x: auto; }
+        .table-custom th, .table-custom td { min-width: 100px; padding: 8px; font-size: 14px; }
+        .table-custom th { white-space: nowrap; }
+        .pagination-info { text-align: center; }
+        .btn-primary, .btn-warning, .btn-danger { width: 100%; margin-bottom: 5px; }
     }
-
-    .subtitle {
-        font-size: 14px;
-    }
-
-    .action-container {
-        justify-content: center;
-    }
-
-    .search-bar .form-control {
-        width: 100%;
-        max-width: 200px;
-    }
-
-    .form-header {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-
-    .grid-four {
-        grid-template-columns: 1fr;
-    }
-
-    .form-actions {
-        text-align: center;
-    }
-
-    .product-table-box table {
-        display: block;
-        overflow-x: auto;
-    }
-
-    .table-custom th, .table-custom td {
-        min-width: 100px;
-        padding: 8px;
-        font-size: 14px;
-    }
-
-    .table-custom th {
-        white-space: nowrap;
-    }
-
-    .pagination-info {
-        text-align: center;
-    }
-
-    .btn-primary, .btn-warning, .btn-danger {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-
-    }
-
     @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .page-title
-
-    {
-        font-size: 22px;
+        .page-title { font-size: 22px; }
+        .subtitle { font-size: 15px; }
+        .action-container { justify-content: flex-end; }
+        .search-bar .form-control { width: 180px; }
+        .grid-four { grid-template-columns: repeat(2, 1fr); }
+        .form-actions { text-align: right; }
+        .table-custom th, .table-custom td { padding: 8px; font-size: 14px; }
+        .pagination-info { text-align: right; }
     }
-
-    .subtitle {
-        font-size: 15px;
-    }
-
-    .action-container {
-        justify-content: flex-end;
-    }
-
-    .search-bar .form-control {
-        width: 180px;
-    }
-
-    .grid-four {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .form-actions {
-        text-align: right;
-    }
-
-    .table-custom th, .table-custom td {
-        padding: 8px;
-        font-size: 14px;
-    }
-
-    .pagination-info {
-        text-align: right;
-    }
-
-    }
-
     @@media (min-width: 1025px) {
-        /* Desktop View */
-        .page-title
-
-    {
-        font-size: 24px;
-    }
-
-    .subtitle {
-        font-size: 16px;
-    }
-
-    .action-container {
-        justify-content: flex-end;
-    }
-
-    .search-bar .form-control {
-        width: 200px;
-    }
-
-    .grid-four {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
-    .form-actions {
-        text-align: right;
-    }
-
-    .table-custom th, .table-custom td {
-        padding: 10px;
-        font-size: 16px;
-    }
-
-    .pagination-info {
-        text-align: right;
-    }
-
-    }
+        .page-title { font-size: 24px; }
+        .subtitle { font-size: 16px; }
+        .action-container { justify-content: flex-end; }
+        .search-bar .form-control { width: 200px; }
+        .grid-four { grid-template-columns: repeat(4, 1fr); }
+        .form-actions { text-align: right; }
+        .table-custom th, .table-custom td { padding: 10px; font-size: 16px; }
+        .pagination-info { text-align: right; }
+    
 </style>

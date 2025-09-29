@@ -63,8 +63,8 @@
                             @if (isSalesMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <!-- Add Sales sub-options here later -->
-                                    <li><NavLink href="#">Placeholder</NavLink></li>
+                                    <li><NavLink href="/salesorder" class="menu-item"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
+                                    <li><NavLink href="/salesinvoice" class="menu-item"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
                                 </ul>
                             }
                         </li>
@@ -129,37 +129,36 @@
         padding-left: 30px;
         margin: 5px 0;
     }
-        .submenu li {
-            margin: 5px 0;
-        }
-        .submenu a {
-            font-size: 13px;
-            padding: 5px 15px;
-            display: flex;
-            align-items: center;
-            color: white;
-            text-decoration: none;
-        }
-            .submenu a i {
-                margin-right: 10px;
-            }
-            .submenu a:hover {
-                background-color: #2d4b9e;
-            }
-        /* Ensure nested submenus align properly */
-        .submenu .submenu {
-            padding-left: 20px;
-        }
+    .submenu li {
+        margin: 5px 0;
+    }
+    .submenu a {
+        font-size: 13px;
+        padding: 5px 15px;
+        display: flex;
+        align-items: center;
+        color: white;
+        text-decoration: none;
+    }
+    .submenu a i {
+        margin-right: 10px;
+    }
+    .submenu a:hover {
+        background-color: #2d4b9e;
+    }
+    /* Ensure nested submenus align properly */
+    .submenu .submenu {
+        padding-left: 20px;
+    }
     /* Style menu items as single-line labels */
     .menu-item {
         display: flex;
         align-items: center;
         white-space: nowrap;
     }
-        .menu-item i {
-            margin-right: 10px;
-        }
-
+    .menu-item i {
+        margin-right: 10px;
+    }
     .layout-container {
         display: flex;
         height: 100vh;
@@ -242,7 +241,6 @@
     .page-shell {
         padding: 20px;
     }
-
     /* Responsive Adjustments */
     @@media (max-width: 768px) {
         /* Mobile View */
@@ -279,7 +277,6 @@
             padding: 10px;
         }
     }
-
     @@media (min-width: 769px) and (max-width: 1024px) {
         /* Tablet View */
         .sidebar {
@@ -302,7 +299,6 @@
             padding: 15px;
         }
     }
-
     @@media (min-width: 1025px) {
         /* Desktop View */
         .sidebar {

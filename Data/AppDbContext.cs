@@ -6,6 +6,7 @@ namespace MyBlazorServerApp.Data
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
         public virtual DbSet<Customer> Customers { get; set; }
         public virtual DbSet<ProductGroup> ProductGroups { get; set; }
         public virtual DbSet<Product> Products { get; set; }
@@ -21,6 +22,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.HasKey(c => c.Id);
+                entity.Property(c => c.Id).ValueGeneratedOnAdd();
                 entity.HasQueryFilter(c => !c.IsDeleted);
                 entity.Property(c => c.Code).HasMaxLength(20).IsRequired();
                 entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
@@ -33,6 +35,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<ProductGroup>(entity =>
             {
                 entity.HasKey(pg => pg.Id);
+                entity.Property(pg => pg.Id).ValueGeneratedOnAdd();
                 entity.Property(pg => pg.Name).HasMaxLength(100).IsRequired();
             });
 
@@ -45,8 +48,11 @@ namespace MyBlazorServerApp.Data
                 entity.Property(p => p.Unit).HasMaxLength(20);
                 entity.Property(p => p.RetailRate).HasPrecision(18, 4);
                 entity.Property(p => p.NextPurchaseRate).HasPrecision(18, 4);
-                entity.Property(p => p.Mrp).HasPrecision(10, 2); // Added for MRP
-                entity.Property(p => p.GstPercentage).HasPrecision(5, 2); // Added for GST Percentage
+                entity.Property(p => p.Mrp).HasPrecision(10, 2);
+                entity.Property(p => p.GstPercentage).HasPrecision(5, 2);
+                entity.Property(p => p.StockQuantity).HasDefaultValue(0);
+                entity.Property(p => p.DiscountPercentage).HasPrecision(5, 2);
+                entity.Property(p => p.ReorderLevel).HasDefaultValue(0);
                 entity.HasOne(p => p.ProductGroup)
                     .WithMany()
                     .HasForeignKey(p => p.CategoryId)
@@ -58,6 +64,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<PurchaseOrder>(entity =>
             {
                 entity.HasKey(po => po.Id);
+                entity.Property(po => po.Id).ValueGeneratedOnAdd();
                 entity.Property(po => po.POId).HasMaxLength(50).IsRequired();
                 entity.Property(po => po.SupplierName).HasMaxLength(100).IsRequired();
                 entity.Property(po => po.OrderDate).HasDefaultValueSql("GETDATE()");
@@ -75,6 +82,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<PurchaseOrderItem>(entity =>
             {
                 entity.HasKey(poi => poi.Id);
+                entity.Property(poi => poi.Id).ValueGeneratedOnAdd();
                 entity.Property(poi => poi.ProductId).HasMaxLength(36).IsRequired();
                 entity.Property(poi => poi.ProductName).HasMaxLength(100).IsRequired();
                 entity.Property(poi => poi.Category).HasMaxLength(100);
@@ -90,6 +98,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<Supplier>(entity =>
             {
                 entity.HasKey(s => s.Id);
+                entity.Property(s => s.Id).ValueGeneratedOnAdd();
                 entity.Property(s => s.SupplierId).HasMaxLength(50).IsRequired();
                 entity.Property(s => s.Name).HasMaxLength(100).IsRequired();
                 entity.Property(s => s.Phone).HasMaxLength(20).IsRequired();
@@ -103,6 +112,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<PurchaseInvoice>(entity =>
             {
                 entity.HasKey(pi => pi.Id);
+                entity.Property(pi => pi.Id).ValueGeneratedOnAdd();
                 entity.Property(pi => pi.PIId).HasMaxLength(50).IsRequired();
                 entity.Property(pi => pi.SupplierName).HasMaxLength(100).IsRequired();
                 entity.Property(pi => pi.InvoiceDate).HasDefaultValueSql("GETDATE()");
@@ -120,6 +130,7 @@ namespace MyBlazorServerApp.Data
             modelBuilder.Entity<PurchaseInvoiceItem>(entity =>
             {
                 entity.HasKey(pii => pii.Id);
+                entity.Property(pii => pii.Id).ValueGeneratedOnAdd();
                 entity.Property(pii => pii.ProductId).HasMaxLength(36).IsRequired();
                 entity.Property(pii => pii.ProductName).HasMaxLength(100).IsRequired();
                 entity.Property(pii => pii.Category).HasMaxLength(100);
@@ -130,6 +141,22 @@ namespace MyBlazorServerApp.Data
                 entity.Property(pii => pii.GSTPercent).HasPrecision(18, 4);
                 entity.Property(pii => pii.LineTotal).HasPrecision(18, 4);
             });
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                Console.WriteLine("Saving changes to database...");
+                var result = await base.SaveChangesAsync(cancellationToken);
+                Console.WriteLine($"Changes saved successfully. Affected rows: {result}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving changes: {ex.Message} - Inner Exception: {ex.InnerException?.Message}, StackTrace: {ex.StackTrace}");
+                throw;
+            }
         }
     }
 }
