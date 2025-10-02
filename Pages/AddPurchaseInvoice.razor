@@ -3,12 +3,13 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
+
 <div class="main-container">
     <div class="sidebar">
         <h3>Add Purchase Invoice</h3>
     </div>
     <div class="content-area">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 class="page-title" style="color: #1e3a8a;">@Title</h3>
             <button class="btn btn-secondary" @onclick="BackToList">Back to List</button>
         </div>
@@ -154,6 +155,7 @@
         </div>
     </div>
 </div>
+
 @code {
     private string Title => editId.HasValue ? "Edit Purchase Invoice" : "Add New Purchase Invoice";
     private MyBlazorServerApp.Models.PurchaseInvoice purchaseInvoiceModel = new() { Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>() };
@@ -249,12 +251,15 @@
     {
         if (purchaseInvoiceModel.Items == null)
             purchaseInvoiceModel.Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>();
+
         if (string.IsNullOrEmpty(newItem.ProductName) || !newItem.Quantity.HasValue || !newItem.Rate.HasValue)
         {
             errorMessage = "Product Name, Quantity, and Rate are required for items.";
             return;
         }
+
         newItem.LineTotal = CalculateLineTotal(newItem);
+
         var itemToAdd = new MyBlazorServerApp.Models.PurchaseInvoiceItem
         {
             ProductId = Guid.NewGuid().ToString(),
@@ -268,6 +273,7 @@
             LineTotal = newItem.LineTotal,
             PurchaseInvoiceId = purchaseInvoiceModel.Id // ✅ FIXED
         };
+
         purchaseInvoiceModel.Items.Add(itemToAdd);
         StateHasChanged(); // Force UI update to reflect added item
         newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem { TaxMode = "Line Exclusive" };
@@ -314,6 +320,7 @@
         newItem.LineTotal = CalculateLineTotal(newItem);
     }
 }
+
 <style>
     .main-container {
         display: flex;
@@ -331,7 +338,6 @@
         bottom: 0;
         left: 0;
         z-index: 1;
-        transition: transform 0.3s ease;
     }
 
     .content-area {
@@ -340,7 +346,6 @@
         overflow-y: auto;
         background: white;
         width: calc(100% - 250px);
-        transition: margin-left 0.3s ease;
     }
 
     .page-title {
@@ -386,8 +391,6 @@
         padding: 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
-        width: 100%;
-        box-sizing: border-box;
     }
 
     .radio-group {
@@ -433,7 +436,6 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        flex-wrap: wrap;
     }
 
     .btn-primary {
@@ -450,54 +452,5 @@
         border: none;
         padding: 8px 15px;
         border-radius: 4px;
-    }
-
-    /* Mobile Responsive Adjustments */
-    @@media (max-width: 768px) {
-        .sidebar
-
-    {
-        width: 100%;
-        height: auto;
-        position: relative;
-        transform: translateX(0);
-    }
-
-    .content-area {
-        margin-left: 0;
-        width: 100%;
-        padding: 10px;
-    }
-
-    .page-title {
-        font-size: 20px;
-    }
-
-    .grid-two, .grid-three {
-        grid-template-columns: 1fr;
-    }
-
-    .form-actions, .summary {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-        .summary .form-item {
-            width: 100%;
-        }
-
-        .summary .form-actions {
-            width: 100%;
-            text-align: center;
-        }
-
-    .items-table table {
-        font-size: 14px;
-    }
-
-    .table-custom th, .table-custom td {
-        padding: 6px;
-    }
-
     }
 </style>

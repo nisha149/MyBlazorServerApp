@@ -15,25 +15,32 @@ namespace MyBlazorServerApp.Data
         public virtual DbSet<Supplier> Suppliers { get; set; }
         public virtual DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
         public virtual DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
+        public virtual DbSet<SalesOrder> SalesOrders { get; set; }
+        public virtual DbSet<SalesOrderItem> SalesOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Customer
             modelBuilder.Entity<Customer>(entity =>
             {
+                entity.ToTable("Customers");
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.Id).ValueGeneratedOnAdd();
                 entity.HasQueryFilter(c => !c.IsDeleted);
+                entity.HasIndex(c => c.Code).IsUnique();
                 entity.Property(c => c.Code).HasMaxLength(20).IsRequired();
                 entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
                 entity.Property(c => c.Phone).HasMaxLength(20);
                 entity.Property(c => c.Gstin).HasMaxLength(20);
+                entity.Property(c => c.Address).HasMaxLength(500);
+                entity.Property(c => c.Email).HasMaxLength(100);
                 entity.Property(c => c.IsDeleted).HasDefaultValue(false);
             });
 
             // ProductGroup
             modelBuilder.Entity<ProductGroup>(entity =>
             {
+                entity.ToTable("ProductGroups");
                 entity.HasKey(pg => pg.Id);
                 entity.Property(pg => pg.Id).ValueGeneratedOnAdd();
                 entity.Property(pg => pg.Name).HasMaxLength(100).IsRequired();
@@ -42,7 +49,9 @@ namespace MyBlazorServerApp.Data
             // Product
             modelBuilder.Entity<Product>(entity =>
             {
+                entity.ToTable("Products");
                 entity.HasKey(p => p.Id);
+                entity.Property(p => p.Id).ValueGeneratedNever();
                 entity.Property(p => p.Name).HasMaxLength(100).IsRequired();
                 entity.Property(p => p.HsnCode).HasMaxLength(20);
                 entity.Property(p => p.Unit).HasMaxLength(20);
@@ -63,9 +72,11 @@ namespace MyBlazorServerApp.Data
             // PurchaseOrder
             modelBuilder.Entity<PurchaseOrder>(entity =>
             {
+                entity.ToTable("PurchaseOrders");
                 entity.HasKey(po => po.Id);
                 entity.Property(po => po.Id).ValueGeneratedOnAdd();
                 entity.Property(po => po.POId).HasMaxLength(50).IsRequired();
+                entity.HasIndex(po => po.POId).IsUnique();
                 entity.Property(po => po.SupplierName).HasMaxLength(100).IsRequired();
                 entity.Property(po => po.OrderDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(po => po.ExpectedDelivery).HasDefaultValueSql("DATEADD(day, 7, GETDATE())");
@@ -81,14 +92,14 @@ namespace MyBlazorServerApp.Data
             // PurchaseOrderItem
             modelBuilder.Entity<PurchaseOrderItem>(entity =>
             {
+                entity.ToTable("PurchaseOrderItems");
                 entity.HasKey(poi => poi.Id);
                 entity.Property(poi => poi.Id).ValueGeneratedOnAdd();
                 entity.Property(poi => poi.ProductId).HasMaxLength(36).IsRequired();
                 entity.Property(poi => poi.ProductName).HasMaxLength(100).IsRequired();
-                entity.Property(poi => poi.Category).HasMaxLength(100);
                 entity.Property(poi => poi.TaxMode).HasMaxLength(50);
-                entity.Property(poi => poi.Quantity).HasPrecision(18, 4);
-                entity.Property(poi => poi.Rate).HasPrecision(18, 4);
+                entity.Property(poi => poi.Quantity).HasPrecision(18, 4).IsRequired();
+                entity.Property(poi => poi.Rate).HasPrecision(18, 4).IsRequired();
                 entity.Property(poi => poi.DiscountPercent).HasPrecision(18, 4);
                 entity.Property(poi => poi.GSTPercent).HasPrecision(18, 4);
                 entity.Property(poi => poi.LineTotal).HasPrecision(18, 4);
@@ -97,9 +108,11 @@ namespace MyBlazorServerApp.Data
             // Supplier
             modelBuilder.Entity<Supplier>(entity =>
             {
+                entity.ToTable("Suppliers");
                 entity.HasKey(s => s.Id);
                 entity.Property(s => s.Id).ValueGeneratedOnAdd();
                 entity.Property(s => s.SupplierId).HasMaxLength(50).IsRequired();
+                entity.HasIndex(s => s.SupplierId).IsUnique();
                 entity.Property(s => s.Name).HasMaxLength(100).IsRequired();
                 entity.Property(s => s.Phone).HasMaxLength(20).IsRequired();
                 entity.Property(s => s.Email).HasMaxLength(100).IsRequired();
@@ -111,9 +124,11 @@ namespace MyBlazorServerApp.Data
             // PurchaseInvoice
             modelBuilder.Entity<PurchaseInvoice>(entity =>
             {
+                entity.ToTable("PurchaseInvoices");
                 entity.HasKey(pi => pi.Id);
                 entity.Property(pi => pi.Id).ValueGeneratedOnAdd();
                 entity.Property(pi => pi.PIId).HasMaxLength(50).IsRequired();
+                entity.HasIndex(pi => pi.PIId).IsUnique();
                 entity.Property(pi => pi.SupplierName).HasMaxLength(100).IsRequired();
                 entity.Property(pi => pi.InvoiceDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(pi => pi.DueDate).HasDefaultValueSql("DATEADD(day, 30, GETDATE())");
@@ -129,17 +144,58 @@ namespace MyBlazorServerApp.Data
             // PurchaseInvoiceItem
             modelBuilder.Entity<PurchaseInvoiceItem>(entity =>
             {
+                entity.ToTable("PurchaseInvoiceItems");
                 entity.HasKey(pii => pii.Id);
                 entity.Property(pii => pii.Id).ValueGeneratedOnAdd();
                 entity.Property(pii => pii.ProductId).HasMaxLength(36).IsRequired();
                 entity.Property(pii => pii.ProductName).HasMaxLength(100).IsRequired();
-                entity.Property(pii => pii.Category).HasMaxLength(100);
                 entity.Property(pii => pii.TaxMode).HasMaxLength(50);
-                entity.Property(pii => pii.Quantity).HasPrecision(18, 4);
-                entity.Property(pii => pii.Rate).HasPrecision(18, 4);
+                entity.Property(pii => pii.Quantity).HasPrecision(18, 4).IsRequired();
+                entity.Property(pii => pii.Rate).HasPrecision(18, 4).IsRequired();
                 entity.Property(pii => pii.DiscountPercent).HasPrecision(18, 4);
                 entity.Property(pii => pii.GSTPercent).HasPrecision(18, 4);
                 entity.Property(pii => pii.LineTotal).HasPrecision(18, 4);
+            });
+
+            // SalesOrder
+            modelBuilder.Entity<SalesOrder>(entity =>
+            {
+                entity.ToTable("SalesOrders");
+                entity.HasKey(so => so.Id);
+                entity.Property(so => so.Id).ValueGeneratedOnAdd();
+                entity.Property(so => so.SOId).HasMaxLength(50).IsRequired();
+                entity.HasIndex(so => so.SOId).IsUnique();
+                entity.Property(so => so.CustomerName).HasMaxLength(100).IsRequired();
+                entity.Property(so => so.OrderDate).IsRequired();
+                entity.Property(so => so.ExpectedDelivery).IsRequired(false);
+                entity.Property(so => so.TotalAmount).HasPrecision(18, 4);
+                entity.Property(so => so.Status).HasMaxLength(50).IsRequired();
+                entity.Property(so => so.Remarks).HasMaxLength(500);
+                entity.HasOne(so => so.Customer)
+                    .WithMany()
+                    .HasForeignKey(so => so.CustomerId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(so => so.Items)
+                    .WithOne(soi => soi.SalesOrder)
+                    .HasForeignKey(soi => soi.SalesOrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // SalesOrderItem
+            modelBuilder.Entity<SalesOrderItem>(entity =>
+            {
+                entity.ToTable("SalesOrderItems");
+                entity.HasKey(soi => soi.Id);
+                entity.Property(soi => soi.Id).ValueGeneratedOnAdd();
+                entity.Property(soi => soi.ProductId).HasMaxLength(36);
+                entity.Property(soi => soi.ProductName).HasMaxLength(100).IsRequired();
+                entity.Property(soi => soi.TaxMode).HasMaxLength(50);
+                entity.Property(soi => soi.Quantity).HasPrecision(18, 4).IsRequired();
+                entity.Property(soi => soi.Rate).HasPrecision(18, 4).IsRequired();
+                entity.Property(soi => soi.DiscountPercent).HasPrecision(18, 4);
+                entity.Property(soi => soi.GSTPercent).HasPrecision(18, 4);
+                entity.Property(soi => soi.LineTotal).HasPrecision(18, 4);
             });
         }
 
@@ -147,9 +203,25 @@ namespace MyBlazorServerApp.Data
         {
             try
             {
-                Console.WriteLine("Saving changes to database...");
+                Console.WriteLine("Attempting to save changes to database...");
                 var result = await base.SaveChangesAsync(cancellationToken);
-                Console.WriteLine($"Changes saved successfully. Affected rows: {result}");
+                Console.WriteLine($"Successfully saved {result} changes to database.");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving changes: {ex.Message} - Inner Exception: {ex.InnerException?.Message}, StackTrace: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        public override int SaveChanges()
+        {
+            try
+            {
+                Console.WriteLine("Attempting to save changes to database (synchronous)...");
+                var result = base.SaveChanges();
+                Console.WriteLine($"Successfully saved {result} changes to database.");
                 return result;
             }
             catch (Exception ex)

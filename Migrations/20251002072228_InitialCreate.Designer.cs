@@ -12,15 +12,15 @@ using MyBlazorServerApp.Data;
 namespace MyBlazorServerApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250926133621_UpdateReorderLevelDefault")]
-    partial class UpdateReorderLevelDefault
+    [Migration("20251002072228_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "9.0.0-rc.1.24451.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -33,10 +33,18 @@ namespace MyBlazorServerApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Gstin")
                         .HasMaxLength(20)
@@ -61,34 +69,30 @@ namespace MyBlazorServerApp.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.Product", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("DiscountPercentage")
+                    b.Property<decimal?>("DiscountPercentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<decimal>("GstPercentage")
+                    b.Property<decimal?>("GstPercentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("HsnCode")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<decimal>("Mrp")
+                    b.Property<decimal?>("Mrp")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
@@ -97,7 +101,7 @@ namespace MyBlazorServerApp.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("NextPurchaseRate")
+                    b.Property<decimal?>("NextPurchaseRate")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -106,7 +110,7 @@ namespace MyBlazorServerApp.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<decimal>("RetailRate")
+                    b.Property<decimal?>("RetailRate")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -116,7 +120,6 @@ namespace MyBlazorServerApp.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("Unit")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
@@ -124,7 +127,7 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.ProductGroup", b =>
@@ -142,7 +145,7 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ProductGroups");
+                    b.ToTable("ProductGroups", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseInvoice", b =>
@@ -189,7 +192,10 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PurchaseInvoices");
+                    b.HasIndex("PIId")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseInvoices", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseInvoiceItem", b =>
@@ -201,8 +207,7 @@ namespace MyBlazorServerApp.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("DiscountPercent")
                         .HasPrecision(18, 4)
@@ -229,11 +234,11 @@ namespace MyBlazorServerApp.Migrations
                     b.Property<int?>("PurchaseInvoiceId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Quantity")
+                    b.Property<int>("Quantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("Rate")
+                    b.Property<decimal>("Rate")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -245,7 +250,7 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasIndex("PurchaseInvoiceId");
 
-                    b.ToTable("PurchaseInvoiceItems");
+                    b.ToTable("PurchaseInvoiceItems", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseOrder", b =>
@@ -303,7 +308,10 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PurchaseOrders");
+                    b.HasIndex("POId")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseOrders", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseOrderItem", b =>
@@ -315,8 +323,8 @@ namespace MyBlazorServerApp.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal?>("DiscountPercent")
                         .HasPrecision(18, 4)
@@ -343,11 +351,11 @@ namespace MyBlazorServerApp.Migrations
                     b.Property<int>("PurchaseOrderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Quantity")
+                    b.Property<int>("Quantity")
                         .HasPrecision(18, 4)
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("Rate")
+                    b.Property<decimal>("Rate")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -359,7 +367,113 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderItems");
+                    b.ToTable("PurchaseOrderItems", (string)null);
+                });
+
+            modelBuilder.Entity("MyBlazorServerApp.Models.SalesOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ExpectedDelivery")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SOId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("SOId")
+                        .IsUnique();
+
+                    b.ToTable("SalesOrders", (string)null);
+                });
+
+            modelBuilder.Entity("MyBlazorServerApp.Models.SalesOrderItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("GSTPercent")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("ProductId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SalesOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TaxMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesOrderId");
+
+                    b.ToTable("SalesOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.Supplier", b =>
@@ -406,7 +520,10 @@ namespace MyBlazorServerApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Suppliers");
+                    b.HasIndex("SupplierId")
+                        .IsUnique();
+
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.Product", b =>
@@ -440,12 +557,38 @@ namespace MyBlazorServerApp.Migrations
                     b.Navigation("PurchaseOrder");
                 });
 
+            modelBuilder.Entity("MyBlazorServerApp.Models.SalesOrder", b =>
+                {
+                    b.HasOne("MyBlazorServerApp.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("MyBlazorServerApp.Models.SalesOrderItem", b =>
+                {
+                    b.HasOne("MyBlazorServerApp.Models.SalesOrder", "SalesOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SalesOrder");
+                });
+
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseInvoice", b =>
                 {
                     b.Navigation("Items");
                 });
 
             modelBuilder.Entity("MyBlazorServerApp.Models.PurchaseOrder", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("MyBlazorServerApp.Models.SalesOrder", b =>
                 {
                     b.Navigation("Items");
                 });

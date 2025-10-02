@@ -22,6 +22,9 @@ namespace MyBlazorServerApp.Models
         [StringLength(20)]
         [Display(Name = "GSTIN")]
         public string? Gstin { get; set; }
+        public string? Address { get; set; }
+        [EmailAddress, StringLength(100)]
+        public string? Email { get; set; }
 
         public bool IsDeleted { get; set; } = false; // Added for soft delete
     }
