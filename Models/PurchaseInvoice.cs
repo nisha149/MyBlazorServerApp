@@ -17,6 +17,7 @@ namespace MyBlazorServerApp.Models
         public decimal? TotalAmount { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Remarks { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; }
         public List<PurchaseInvoiceItem> Items { get; set; } = new List<PurchaseInvoiceItem>();
     }
 }

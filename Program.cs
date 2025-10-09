@@ -1,9 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using MyBlazorServerApp.Data;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register EF Core with DbContextFactory
+// Add logging for better debugging
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.AddDebug();
+});
+
+// Register EF Core with DbContextFactory for database access
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
@@ -36,7 +45,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+app.UseHttpsRedirection(); // Enforce HTTPS redirection
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
@@ -49,11 +58,13 @@ if (app.Environment.IsDevelopment())
         using var scope = app.Services.CreateScope();
         var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
         using var db = dbFactory.CreateDbContext();
+        app.Logger.LogInformation("Applying database migrations...");
         db.Database.Migrate();
+        app.Logger.LogInformation("Database migrations applied successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Migration failed: {ex.Message}. Continuing without migration.");
+        app.Logger.LogError(ex, "Migration failed: {Message}. Continuing without migration.", ex.Message);
     }
 }
 

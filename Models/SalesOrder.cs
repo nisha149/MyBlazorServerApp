@@ -25,6 +25,7 @@ namespace MyBlazorServerApp.Models
         public int? CustomerId { get; set; }
         [ForeignKey("CustomerId")]
         public Customer? Customer { get; set; }
+        public bool IsDeleted { get; set; }
         public List<SalesOrderItem> Items { get; set; } = new List<SalesOrderItem>();
     }
 }

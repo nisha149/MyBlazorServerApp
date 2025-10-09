@@ -25,6 +25,7 @@ namespace MyBlazorServerApp.Models
         public string? SupplierPhone { get; set; }
         [StringLength(100)]
         public string? SupplierEmail { get; set; }
+        public bool IsDeleted { get; set; }
         public virtual List<PurchaseOrderItem> Items { get; set; } = new();
     }
 

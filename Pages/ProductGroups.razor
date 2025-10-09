@@ -63,6 +63,7 @@
                         <button type="submit" class="btn btn-success" style="background-color:#1e3a8a; color:white;">
                             @(editingGroup == null ? "Save Group" : "Update Group")
                         </button>
+                        <button class="btn btn-secondary" @onclick="BackToList">Cancel</button>
                     </div>
                 </EditForm>
             </div>
@@ -75,11 +76,12 @@
     private MyBlazorServerApp.Models.ProductGroup? editingGroup;
     private bool isFormVisible = false;
     private string errorMessage = "";
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            using var db = DbFactory.CreateDbContext();
+            using var db = await DbFactory.CreateDbContextAsync();
             if (db == null)
             {
                 errorMessage = "Failed to create database context. Please check the configuration.";
@@ -98,11 +100,15 @@
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
+
     private async Task LoadGroups(AppDbContext db)
     {
         try
         {
-            productGroups = await db.ProductGroups.ToListAsync() ?? new List<MyBlazorServerApp.Models.ProductGroup>();
+            productGroups = await db.ProductGroups
+                .Where(pg => !pg.IsDeleted)
+                .ToListAsync() ?? new List<MyBlazorServerApp.Models.ProductGroup>();
+            Console.WriteLine($"Loaded {productGroups.Count} product groups.");
         }
         catch (Exception ex)
         {
@@ -110,51 +116,54 @@
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
+
     private void ShowAddForm()
     {
         editingGroup = null;
         groupModel = new MyBlazorServerApp.Models.ProductGroup();
         isFormVisible = true;
+        errorMessage = "";
     }
+
     private void BackToList()
     {
         isFormVisible = false;
         editingGroup = null;
+        groupModel = new MyBlazorServerApp.Models.ProductGroup();
+        errorMessage = "";
     }
+
     private async Task SaveGroup()
     {
         try
         {
-            using var db = DbFactory.CreateDbContext();
+            using var db = await DbFactory.CreateDbContextAsync();
             if (db?.ProductGroups == null)
             {
                 errorMessage = "Database context or ProductGroups set is not configured.";
                 return;
             }
+            if (string.IsNullOrWhiteSpace(groupModel.Name))
+            {
+                errorMessage = "Group Name is required.";
+                return;
+            }
+            if (await db.ProductGroups.AnyAsync(g => g.Name == groupModel.Name && g.Id != groupModel.Id))
+            {
+                errorMessage = "Group Name must be unique.";
+                return;
+            }
             if (editingGroup == null)
             {
-                if (string.IsNullOrWhiteSpace(groupModel.Name))
-                {
-                    errorMessage = "Group Name is required.";
-                    return;
-                }
-                if (await db.ProductGroups.AnyAsync(g => g.Name == groupModel.Name))
-                {
-                    errorMessage = "Group Name must be unique.";
-                    return;
-                }
+                groupModel.Id = 0;
+                groupModel.IsDeleted = false;
                 db.ProductGroups.Add(groupModel);
             }
             else
             {
-                var existingGroup = await db.ProductGroups.FirstOrDefaultAsync(g => g.Id == editingGroup.Id);
+                var existingGroup = await db.ProductGroups.FindAsync(groupModel.Id);
                 if (existingGroup != null)
                 {
-                    if (await db.ProductGroups.AnyAsync(g => g.Name == groupModel.Name && g.Id != groupModel.Id))
-                    {
-                        errorMessage = "Group Name must be unique.";
-                        return;
-                    }
                     existingGroup.Name = groupModel.Name;
                     db.ProductGroups.Update(existingGroup);
                 }
@@ -162,35 +171,40 @@
             await db.SaveChangesAsync();
             errorMessage = "Product group saved successfully.";
             isFormVisible = false;
+            groupModel = new MyBlazorServerApp.Models.ProductGroup();
             await LoadGroups(db);
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error saving product group: {ex.Message}";
+            errorMessage = $"Error saving product group: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }
+
     private void EditGroup(MyBlazorServerApp.Models.ProductGroup group)
     {
         editingGroup = group;
         groupModel = new MyBlazorServerApp.Models.ProductGroup
         {
             Id = group.Id,
-            Name = group.Name
+            Name = group.Name,
+            IsDeleted = group.IsDeleted
         };
         isFormVisible = true;
+        errorMessage = "";
     }
+
     private async Task DeleteGroup(MyBlazorServerApp.Models.ProductGroup group)
     {
         try
         {
-            using var db = DbFactory.CreateDbContext();
+            using var db = await DbFactory.CreateDbContextAsync();
             if (db?.ProductGroups != null)
             {
-                var existingGroup = await db.ProductGroups.FirstOrDefaultAsync(g => g.Id == group.Id);
+                var existingGroup = await db.ProductGroups.FindAsync(group.Id);
                 if (existingGroup != null)
                 {
-                    db.ProductGroups.Remove(existingGroup);
+                    existingGroup.IsDeleted = true;
                     await db.SaveChangesAsync();
                     await LoadGroups(db);
                 }
@@ -198,7 +212,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error deleting product group: {ex.Message}";
+            errorMessage = $"Error deleting product group: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
             Console.WriteLine($"Detailed error: {ex.ToString()}");
         }
     }

@@ -23,7 +23,7 @@ namespace MyBlazorServerApp.Migrations
                     Gstin = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    IsDeleted = table.Column<bool>(type: "bit", maxLength: 200, nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -36,7 +36,8 @@ namespace MyBlazorServerApp.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -55,7 +56,8 @@ namespace MyBlazorServerApp.Migrations
                     DueDate = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "DATEADD(day, 30, GETDATE())"),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: true),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Remarks = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Remarks = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -77,7 +79,8 @@ namespace MyBlazorServerApp.Migrations
                     Remarks = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     SupplierAddress = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SupplierPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    SupplierEmail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    SupplierEmail = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -96,11 +99,39 @@ namespace MyBlazorServerApp.Migrations
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", maxLength: 500, nullable: false, defaultValue: false),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Suppliers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SalesInvoices",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InvoiceId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CustomerName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    InvoiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Remarks = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SalesInvoices", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SalesInvoices_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -116,7 +147,8 @@ namespace MyBlazorServerApp.Migrations
                     TotalAmount = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Remarks = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CustomerId = table.Column<int>(type: "int", nullable: true)
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -133,18 +165,20 @@ namespace MyBlazorServerApp.Migrations
                 name: "Products",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: true),
                     HsnCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Unit = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    NextPurchaseRate = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: true),
+                    NextPurchaseRate = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     GstPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
                     StockQuantity = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     Mrp = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: true),
                     DiscountPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
-                    RetailRate = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: true),
-                    ReorderLevel = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
+                    RetailRate = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    ReorderLevel = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -163,7 +197,7 @@ namespace MyBlazorServerApp.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
                     ProductName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Quantity = table.Column<int>(type: "int", precision: 18, scale: 4, nullable: false),
@@ -191,7 +225,7 @@ namespace MyBlazorServerApp.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
                     ProductName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Category = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Quantity = table.Column<int>(type: "int", precision: 18, scale: 4, nullable: false),
@@ -214,12 +248,40 @@ namespace MyBlazorServerApp.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SalesInvoiceItems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SalesInvoiceId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    ProductName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Category = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Quantity = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    Rate = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
+                    DiscountPercent = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: true),
+                    GSTPercent = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: true),
+                    TaxMode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    LineTotal = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SalesInvoiceItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SalesInvoiceItems_SalesInvoices_SalesInvoiceId",
+                        column: x => x.SalesInvoiceId,
+                        principalTable: "SalesInvoices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SalesOrderItems",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    ProductId = table.Column<int>(type: "int", maxLength: 36, nullable: false),
                     ProductName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Category = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     TaxMode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -275,6 +337,22 @@ namespace MyBlazorServerApp.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_SalesInvoiceItems_SalesInvoiceId",
+                table: "SalesInvoiceItems",
+                column: "SalesInvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SalesInvoices_CustomerId",
+                table: "SalesInvoices",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SalesInvoices_InvoiceId",
+                table: "SalesInvoices",
+                column: "InvoiceId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SalesOrderItems_SalesOrderId",
                 table: "SalesOrderItems",
                 column: "SalesOrderId");
@@ -310,6 +388,9 @@ namespace MyBlazorServerApp.Migrations
                 name: "PurchaseOrderItems");
 
             migrationBuilder.DropTable(
+                name: "SalesInvoiceItems");
+
+            migrationBuilder.DropTable(
                 name: "SalesOrderItems");
 
             migrationBuilder.DropTable(
@@ -323,6 +404,9 @@ namespace MyBlazorServerApp.Migrations
 
             migrationBuilder.DropTable(
                 name: "PurchaseOrders");
+
+            migrationBuilder.DropTable(
+                name: "SalesInvoices");
 
             migrationBuilder.DropTable(
                 name: "SalesOrders");

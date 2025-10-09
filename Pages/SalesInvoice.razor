@@ -1,0 +1,844 @@
+﻿@page "/salesinvoice"
+@using MyBlazorServerApp.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<div class="main-card">
+    <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 class="page-title">Sales Invoice List</h3>
+                <p class="subtitle">Manage all your sales invoices</p>
+            </div>
+            <div class="action-container">
+                <div class="search-bar">
+                    <InputText class="form-control" @bind-Value="searchText" placeholder="Search by Invoice ID or Customer..." @oninput="OnSearchInput" />
+                </div>
+                <button class="btn btn-primary" @onclick="ApplyFilter">Search</button>
+                <button class="btn btn-primary" @onclick="ShowAddForm">Add New Invoice</button>
+            </div>
+        </div>
+    </div>
+    @if (isFormVisible)
+    {
+        <div class="form-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 class="page-title" style="color: #1e3a8a;">@(editingSalesInvoice == null ? "Create New Sales Invoice" : "Edit Sales Invoice")</h3>
+                <button class="btn btn-secondary" @onclick="BackToList">View All Invoices</button>
+            </div>
+            <div class="add-card">
+                <div class="inner-box">
+                    <EditForm Model="salesInvoiceModel" OnValidSubmit="SaveSalesInvoice">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">@errorMessage</div>
+                        }
+                        <div class="grid-two">
+                            <div class="form-item">
+                                <label class="form-label">Invoice ID</label>
+                                <InputText class="form-control" @bind-Value="salesInvoiceModel.InvoiceId" disabled="@(editingSalesInvoice != null)" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Customer</label>
+                                <InputSelect class="form-control" @bind-Value="selectedCustomerId" required>
+                                    <option value="">Select Customer</option>
+                                    @foreach (var customer in customers)
+                                    {
+                                        <option value="@customer.Id">@customer.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Invoice Date</label>
+                                <InputDate class="form-control" @bind-Value="salesInvoiceModel.InvoiceDate" required />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Due Date</label>
+                                <InputDate class="form-control" @bind-Value="salesInvoiceModel.DueDate" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Status</label>
+                                <InputSelect class="form-control" @bind-Value="salesInvoiceModel.Status">
+                                    <option value="">Select Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Overdue">Overdue</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </InputSelect>
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Remarks</label>
+                                <InputTextArea class="form-control" @bind-Value="salesInvoiceModel.Remarks" />
+                            </div>
+                        </div>
+                        <h4 class="section-title" style="color: #1e3a8a;">Sales Invoice Items</h4>
+                        <div class="grid-three">
+                            <div class="form-item">
+                                <label class="form-label">Product</label>
+                                <InputSelect class="form-control" @bind-Value="selectedProductId" required>
+                                    <option value="">Select Product</option>
+                                    @foreach (var product in products)
+                                    {
+                                        <option value="@product.Id">@product.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Category</label>
+                                <InputText class="form-control" @bind-Value="newItem.Category" readonly />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Quantity</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" required @oninput="UpdateLineTotal" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Rate</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" required @oninput="UpdateLineTotal" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Disc %</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" @oninput="UpdateLineTotal" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">GST %</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" @oninput="UpdateLineTotal" />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Line Total (incl. GST)</label>
+                                <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                            </div>
+                            <div class="form-item">
+                                <label class="form-label">Tax Calculation Mode</label>
+                                <div class="radio-group">
+                                    <label>
+                                        <input type="radio" name="taxMode" value="Line Exclusive" checked="@(newItem.TaxMode == "Line Exclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        Exclusive
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        Inclusive
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions full-width">
+                            <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
+                        </div>
+                        <div class="items-table">
+                            <table class="table table-custom">
+                                <thead>
+                                    <tr style="background-color: #1e3a8a; color: white;">
+                                        <th>PRODUCT ID</th>
+                                        <th>PRODUCT NAME</th>
+                                        <th>QUANTITY</th>
+                                        <th>RATE</th>
+                                        <th>DISC %</th>
+                                        <th>GST %</th>
+                                        <th>LINE TOTAL</th>
+                                        <th>TAX MODE</th>
+                                        <th>ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (salesInvoiceModel.Items == null || !salesInvoiceModel.Items.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted py-3">
+                                                No items added yet. Use the form above to add products.
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var item in salesInvoiceModel.Items)
+                                        {
+                                            <tr>
+                                                <td>@item.ProductId</td>
+                                                <td>@(string.IsNullOrEmpty(item.ProductName) ? "N/A" : item.ProductName)</td>
+                                                <td>@item.Quantity.ToString("0.##")</td>
+                                                <td>@item.Rate.ToString("C")</td>
+                                                <td>@(item.DiscountPercent.HasValue ? $"{item.DiscountPercent.Value:0.##}%" : "—")</td>
+                                                <td>@(item.GSTPercent.HasValue ? $"{item.GSTPercent.Value:0.##}%" : "—")</td>
+                                                <td>@item.LineTotal.ToString("C")</td>
+                                                <td>@(string.IsNullOrEmpty(item.TaxMode) ? "N/A" : item.TaxMode)</td>
+                                                <td>
+                                                    <button type="button"
+                                                            class="btn btn-outline-danger btn-sm"
+                                                            title="Remove Item"
+                                                            @onclick="() => RemoveItem(item)">
+                                                        <i class="oi oi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+
+                            </table>
+                        </div>
+                        <div class="summary">
+                            <div class="form-item">
+                                <label class="form-label">Grand Total (incl. GST)</label>
+                                <InputNumber class="form-control" @bind-Value="salesInvoiceModel.TotalAmount" readonly />
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Sales Invoice</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+    @if (!isFormVisible)
+    {
+        <div class="product-table-box">
+            <table class="table table-custom">
+                <thead>
+                    <tr style="background-color: #1e3a8a; color: white;">
+                        <th>INVOICE ID</th>
+                        <th>CUSTOMER NAME</th>
+                        <th>INVOICE DATE</th>
+                        <th>DUE DATE</th>
+                        <th>TOTAL AMOUNT</th>
+                        <th>STATUS</th>
+                        <th style="width:180px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (filteredSalesInvoices.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center">No sales invoices found.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var item in filteredSalesInvoices)
+                        {
+                            <tr>
+                                <td>@(item.InvoiceId ?? "N/A")</td>
+                                <td>@(item.Customer?.Name ?? item.CustomerName ?? "N/A")</td>
+                                <td>@(item.InvoiceDate.ToShortDateString())</td>
+                                <td>@(item.DueDate?.ToShortDateString() ?? "N/A")</td>
+                                <td>@item.TotalAmount.ToString("C")</td>
+                                <td>@(item.Status ?? "N/A")</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditSalesInvoice(item)"><i class="oi oi-pencil"></i></button>
+                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeleteSalesInvoice(item)"><i class="oi oi-trash"></i></button>
+                                    <button class="btn btn-info btn-sm" @onclick="() => PrintSalesInvoice(item.Id)"><i class="oi oi-print"></i></button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<style>
+    .main-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .header-container {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 24px;
+        color: #1e3a8a;
+    }
+
+    .subtitle {
+        margin: 5px 0;
+        color: #6c757d;
+    }
+
+    .action-container {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .search-bar {
+        flex-grow: 1;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .grid-two, .grid-three {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .grid-two {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .form-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .radio-input {
+        margin-right: 5px;
+    }
+
+    .form-actions {
+        margin-top: 10px;
+    }
+
+    .full-width {
+        width: 100%;
+    }
+
+    .items-table {
+        margin-top: 20px;
+    }
+
+    .table-custom {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table-custom th,
+        .table-custom td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
+    .summary {
+        margin-top: 20px;
+    }
+
+    .product-table-box {
+        margin-top: 20px;
+    }
+
+    .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+
+    .me-1 {
+        margin-right: 0.25rem;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+
+    @@media only screen and (max-width: 768px) {
+        .page-title {
+            font-size: 20px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+        }
+
+        .action-container {
+            justify-content: center;
+        }
+
+        .search-bar .form-control {
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .form-container .page-title {
+            font-size: 18px;
+        }
+
+        .grid-two, .grid-three {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            text-align: center;
+        }
+
+        .items-table table, .product-table-box table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        .table-custom th, .table-custom td {
+            min-width: 100px;
+            padding: 6px;
+            font-size: 12px;
+        }
+
+        .table-custom th {
+            white-space: nowrap;
+        }
+
+        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    }
+
+    @@media only screen and (min-width: 769px) and (max-width: 1024px) {
+        .page-title {
+            font-size: 22px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+        }
+
+        .action-container {
+            justify-content: flex-end;
+        }
+
+        .search-bar .form-control {
+            width: 180px;
+        }
+
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-three {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .form-actions {
+            text-align: right;
+        }
+
+        .table-custom th, .table-custom td {
+            padding: 6px;
+            font-size: 14px;
+        }
+    }
+
+    @@media only screen and (min-width: 1025px) {
+        .page-title {
+            font-size: 24px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+        }
+
+        .action-container {
+            justify-content: flex-end;
+        }
+
+        .search-bar .form-control {
+            width: 200px;
+        }
+
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-three {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .form-actions {
+            text-align: right;
+        }
+
+        .table-custom th, .table-custom td {
+            padding: 8px;
+            font-size: 16px;
+        }
+    }
+</style>
+
+@code {
+    private List<MyBlazorServerApp.Models.SalesInvoice> salesInvoices = new();
+    private List<MyBlazorServerApp.Models.SalesInvoice> filteredSalesInvoices = new();
+    private List<MyBlazorServerApp.Models.Customer> customers = new();
+    private List<MyBlazorServerApp.Models.Product> products = new();
+    private MyBlazorServerApp.Models.SalesInvoice salesInvoiceModel = new();
+    private MyBlazorServerApp.Models.SalesInvoice? editingSalesInvoice;
+    private bool isFormVisible = false;
+    private string searchText = string.Empty;
+    private string? errorMessage;
+    private MyBlazorServerApp.Models.SalesInvoiceItem newItem = new();
+    private int? selectedCustomerId;
+    private int? selectedProductId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            customers = await db.Customers.Where(c => !c.IsDeleted).ToListAsync() ?? new();
+            products = await db.Products.Where(p => !p.IsDeleted).ToListAsync() ?? new();
+            salesInvoices = await db.SalesInvoices
+                .Include(si => si.Items)
+                .Include(si => si.Customer)
+                .ToListAsync() ?? new();
+            filteredSalesInvoices = salesInvoices.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+    }
+
+    private void ShowAddForm()
+    {
+        editingSalesInvoice = null;
+        salesInvoiceModel = new MyBlazorServerApp.Models.SalesInvoice
+        {
+            Items = new List<MyBlazorServerApp.Models.SalesInvoiceItem>(),
+            InvoiceId = $"INV-{DateTime.Now:yyyyMMddHHmmss}",
+            InvoiceDate = DateTime.Today,
+            Status = "Pending"
+        };
+        newItem = new MyBlazorServerApp.Models.SalesInvoiceItem { TaxMode = "Line Exclusive" };
+        selectedCustomerId = null;
+        selectedProductId = null;
+        isFormVisible = true;
+        errorMessage = null;
+    }
+
+    private void BackToList()
+    {
+        isFormVisible = false;
+        editingSalesInvoice = null;
+        errorMessage = null;
+        ApplyFilter();
+    }
+
+    private async Task SaveSalesInvoice()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            if (string.IsNullOrEmpty(salesInvoiceModel.InvoiceId) || selectedCustomerId == null)
+            {
+                errorMessage = "Invoice ID and Customer are required.";
+                return;
+            }
+            if (salesInvoiceModel.Items == null || !salesInvoiceModel.Items.Any())
+            {
+                errorMessage = "At least one item is required.";
+                return;
+            }
+            if (salesInvoiceModel.Items.Any(i => i.ProductId == null || i.Quantity == 0 || i.Rate == 0))
+            {
+                errorMessage = "All items must have valid Product, Quantity, and Rate.";
+                return;
+            }
+            if (await db.SalesInvoices.AnyAsync(si => si.InvoiceId == salesInvoiceModel.InvoiceId && si.Id != salesInvoiceModel.Id))
+            {
+                errorMessage = "Invoice ID must be unique.";
+                return;
+            }
+
+            salesInvoiceModel.CustomerId = selectedCustomerId.Value;
+            salesInvoiceModel.CustomerName = customers.FirstOrDefault(c => c.Id == selectedCustomerId.Value)?.Name ?? string.Empty;
+
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await db.Database.BeginTransactionAsync();
+                try
+                {
+                    if (editingSalesInvoice == null)
+                    {
+                        db.SalesInvoices.Add(salesInvoiceModel);
+                    }
+                    else
+                    {
+                        var existingSI = await db.SalesInvoices
+                            .Include(si => si.Items)
+                            .FirstOrDefaultAsync(si => si.Id == editingSalesInvoice.Id);
+                        if (existingSI != null)
+                        {
+                            existingSI.InvoiceId = salesInvoiceModel.InvoiceId;
+                            existingSI.CustomerId = salesInvoiceModel.CustomerId;
+                            existingSI.CustomerName = salesInvoiceModel.CustomerName;
+                            existingSI.InvoiceDate = salesInvoiceModel.InvoiceDate;
+                            existingSI.DueDate = salesInvoiceModel.DueDate;
+                            existingSI.TotalAmount = salesInvoiceModel.TotalAmount;
+                            existingSI.Status = salesInvoiceModel.Status;
+                            existingSI.Remarks = salesInvoiceModel.Remarks;
+                            existingSI.Items.Clear();
+                            existingSI.Items.AddRange(salesInvoiceModel.Items);
+                            db.SalesInvoices.Update(existingSI);
+                        }
+                        else
+                        {
+                            errorMessage = "Sales invoice not found for update.";
+                            return;
+                        }
+                    }
+
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Reset form
+                    salesInvoiceModel = new MyBlazorServerApp.Models.SalesInvoice
+                    {
+                        Items = new List<MyBlazorServerApp.Models.SalesInvoiceItem>(),
+                        InvoiceDate = DateTime.Today,
+                        Status = "Pending"
+                    };
+                    isFormVisible = false;
+
+                    // Reload sales invoices and update filtered list
+                    await OnInitializedAsync();
+                    ApplyFilter(); // <--- This ensures the new invoice shows in the list
+
+                    errorMessage = "Sales invoice saved successfully.";
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    errorMessage = $"Error saving sales invoice: {ex.Message}";
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error executing transaction: {ex.Message}";
+        }
+    }
+
+
+    private void EditSalesInvoice(MyBlazorServerApp.Models.SalesInvoice si)
+    {
+        editingSalesInvoice = si;
+        salesInvoiceModel = new MyBlazorServerApp.Models.SalesInvoice
+        {
+            Id = si.Id,
+            InvoiceId = si.InvoiceId,
+            CustomerId = si.CustomerId,
+            CustomerName = si.Customer?.Name ?? si.CustomerName,
+            InvoiceDate = si.InvoiceDate,
+            DueDate = si.DueDate,
+            TotalAmount = si.TotalAmount,
+            Status = si.Status,
+            Remarks = si.Remarks,
+            Items = si.Items?.Select(i => new MyBlazorServerApp.Models.SalesInvoiceItem
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Category = i.Category,
+                Quantity = i.Quantity,
+                Rate = i.Rate,
+                DiscountPercent = i.DiscountPercent,
+                GSTPercent = i.GSTPercent,
+                TaxMode = i.TaxMode,
+                LineTotal = i.LineTotal
+            }).ToList() ?? new()
+        };
+        selectedCustomerId = si.CustomerId;
+        selectedProductId = null;
+        newItem = new MyBlazorServerApp.Models.SalesInvoiceItem { TaxMode = "Line Exclusive" };
+        isFormVisible = true;
+        errorMessage = null;
+    }
+
+    private async Task DeleteSalesInvoice(MyBlazorServerApp.Models.SalesInvoice si)
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            var existingSI = await db.SalesInvoices
+                .Include(si => si.Items)
+                .FirstOrDefaultAsync(s => s.Id == si.Id);
+            if (existingSI != null)
+            {
+                db.SalesInvoices.Remove(existingSI);
+                await db.SaveChangesAsync();
+                await OnInitializedAsync();
+                errorMessage = "Sales invoice deleted successfully.";
+            }
+            else
+            {
+                errorMessage = "Sales invoice not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting sales invoice: {ex.Message}";
+        }
+    }
+
+    private void PrintSalesInvoice(int id)
+    {
+        NavigationManager.NavigateTo($"/salesinvoice/print/{id}");
+    }
+
+    private void ApplyFilter()
+    {
+        filteredSalesInvoices = salesInvoices
+            .Where(si => string.IsNullOrEmpty(searchText) ||
+                (si.InvoiceId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (si.CustomerName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (si.Customer != null && (si.Customer.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)))
+            .ToList();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        ApplyFilter();
+    }
+    private void AddItem()
+    {
+        if (salesInvoiceModel.Items == null)
+            salesInvoiceModel.Items = new List<SalesInvoiceItem>();
+
+        if (selectedProductId == null || newItem.Quantity <= 0 || newItem.Rate <= 0)
+        {
+            errorMessage = "Product, Quantity, and Rate are required for items.";
+            return;
+        }
+
+        var product = products.FirstOrDefault(p => p.Id == selectedProductId.Value);
+        if (product == null)
+        {
+            errorMessage = "Selected product not found.";
+            return;
+        }
+
+        // Only fill category if empty
+        if (string.IsNullOrWhiteSpace(newItem.Category))
+            newItem.Category = "N/A";
+
+        newItem.LineTotal = CalculateLineTotal(newItem);
+
+        salesInvoiceModel.Items.Add(new SalesInvoiceItem
+        {
+            ProductId = selectedProductId.Value,
+            ProductName = product.Name,
+            Category = newItem.Category,
+            Quantity = newItem.Quantity,
+            Rate = newItem.Rate,
+            DiscountPercent = newItem.DiscountPercent,
+            GSTPercent = newItem.GSTPercent,
+            TaxMode = newItem.TaxMode,
+            LineTotal = newItem.LineTotal
+        });
+
+        newItem = new SalesInvoiceItem { TaxMode = "Line Exclusive" };
+        selectedProductId = null;
+
+        UpdateTotalAmount();
+        errorMessage = null;
+    }
+
+    private void RemoveItem(MyBlazorServerApp.Models.SalesInvoiceItem item)
+    {
+        salesInvoiceModel.Items?.Remove(item);
+        UpdateTotalAmount();
+    }
+
+    private decimal CalculateLineTotal(MyBlazorServerApp.Models.SalesInvoiceItem item)
+    {
+        if (item.Quantity == 0 || item.Rate == 0) return 0;
+        decimal baseAmount = item.Quantity * item.Rate;
+        decimal discount = baseAmount * (item.DiscountPercent ?? 0) / 100m;
+        decimal taxableAmount = baseAmount - discount;
+        if (item.TaxMode == "Line Inclusive" && item.GSTPercent.HasValue)
+        {
+            decimal gstRate = item.GSTPercent.Value / 100m;
+            return taxableAmount;
+        }
+        else if (item.GSTPercent.HasValue)
+        {
+            decimal gst = taxableAmount * item.GSTPercent.Value / 100m;
+            return taxableAmount + gst;
+        }
+        return taxableAmount;
+    }
+
+    private void UpdateTotalAmount()
+    {
+        salesInvoiceModel.TotalAmount = salesInvoiceModel.Items?.Sum(i => i.LineTotal) ?? 0;
+    }
+
+    private void OnTaxModeChange(ChangeEventArgs e)
+    {
+        newItem.TaxMode = e.Value?.ToString();
+        UpdateLineTotal();
+    }
+
+    private void UpdateLineTotal()
+    {
+        newItem.LineTotal = CalculateLineTotal(newItem);
+    }
+}

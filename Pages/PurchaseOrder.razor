@@ -3,6 +3,9 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
 <div class="main-card">
     <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -19,7 +22,7 @@
             </div>
         </div>
     </div>
-    @* FORM / ADD *@
+
     @if (isFormVisible)
     {
         <div class="form-container">
@@ -32,10 +35,12 @@
                     <EditForm Model="purchaseOrderModel" OnValidSubmit="SavePurchaseOrder">
                         <DataAnnotationsValidator />
                         <ValidationSummary class="alert alert-danger" />
+
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
                             <div class="alert alert-danger">@errorMessage</div>
                         }
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">PO ID</label>
@@ -50,6 +55,7 @@
                                 <InputDate class="form-control" @bind-Value="purchaseOrderModel.OrderDate" />
                             </div>
                         </div>
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Expected Delivery Date</label>
@@ -69,6 +75,7 @@
                                 <InputTextArea class="form-control" @bind-Value="purchaseOrderModel.Remarks" />
                             </div>
                         </div>
+
                         <h4 class="section-title" style="color: #1e3a8a;">Purchase Order Items</h4>
                         <div class="grid-three">
                             <div class="form-item">
@@ -84,6 +91,7 @@
                                 <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
                             </div>
                         </div>
+
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Rate</label>
@@ -98,6 +106,7 @@
                                 <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
                             </div>
                         </div>
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
@@ -117,9 +126,11 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="form-actions full-width">
                             <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
                         </div>
+
                         <div class="items-table">
                             <table class="table table-custom">
                                 <thead>
@@ -148,13 +159,16 @@
                                             <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
                                             <td>@item.TaxMode</td>
                                             <td>
-                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)">
+                                                    <i class="oi oi-trash"></i>
+                                                </button>
                                             </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
                         </div>
+
                         <div class="summary">
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
@@ -171,7 +185,7 @@
             </div>
         </div>
     }
-    @* LIST VIEW *@
+
     @if (!isFormVisible)
     {
         <div class="product-table-box">
@@ -218,8 +232,8 @@
         </div>
     }
 </div>
+
 @code {
-    // Use fully-qualified model type to avoid naming conflicts with page class
     private List<MyBlazorServerApp.Models.PurchaseOrder> purchaseOrders = new();
     private List<MyBlazorServerApp.Models.PurchaseOrder> filteredPurchaseOrders = new();
     private MyBlazorServerApp.Models.PurchaseOrder purchaseOrderModel = new();
@@ -230,11 +244,13 @@
     private int pageSize = 5;
     private string? errorMessage;
     private MyBlazorServerApp.Models.PurchaseOrderItem newItem = new();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadPurchaseOrders();
         ApplyFilter();
     }
+
     private async Task LoadPurchaseOrders()
     {
         try
@@ -249,6 +265,7 @@
             Console.WriteLine(errorMessage);
         }
     }
+
     private void ShowAddForm()
     {
         editingPurchaseOrder = null;
@@ -257,24 +274,33 @@
         isFormVisible = true;
         errorMessage = null;
     }
+
     private void BackToList()
     {
         isFormVisible = false;
         editingPurchaseOrder = null;
         errorMessage = null;
     }
+
     private async Task SavePurchaseOrder()
     {
         try
         {
             using var db = DbFactory.CreateDbContext();
+
             if (editingPurchaseOrder == null)
             {
+                foreach (var item in purchaseOrderModel.Items)
+                    item.PurchaseOrder = purchaseOrderModel;
+
                 db.PurchaseOrders.Add(purchaseOrderModel);
             }
             else
             {
-                var existingPO = await db.PurchaseOrders.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseOrder.Id);
+                var existingPO = await db.PurchaseOrders
+                    .Include(p => p.Items)
+                    .FirstOrDefaultAsync(p => p.Id == editingPurchaseOrder.Id);
+
                 if (existingPO != null)
                 {
                     existingPO.POId = purchaseOrderModel.POId;
@@ -284,9 +310,25 @@
                     existingPO.TotalAmount = purchaseOrderModel.TotalAmount;
                     existingPO.Status = purchaseOrderModel.Status;
                     existingPO.Remarks = purchaseOrderModel.Remarks;
-                    existingPO.Items = purchaseOrderModel.Items;
+
+                    db.PurchaseOrderItems.RemoveRange(existingPO.Items);
+                    existingPO.Items = purchaseOrderModel.Items
+                        .Select(i => new MyBlazorServerApp.Models.PurchaseOrderItem
+                        {
+                            ProductId = i.ProductId,
+                            ProductName = i.ProductName,
+                            Category = i.Category,
+                            Quantity = i.Quantity,
+                            Rate = i.Rate,
+                            DiscountPercent = i.DiscountPercent,
+                            GSTPercent = i.GSTPercent,
+                            TaxMode = i.TaxMode,
+                            LineTotal = i.LineTotal,
+                            PurchaseOrderId = existingPO.Id
+                        }).ToList();
                 }
             }
+
             await db.SaveChangesAsync();
             isFormVisible = false;
             await LoadPurchaseOrders();
@@ -294,10 +336,13 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error saving purchase order: {ex.Message}";
-            Console.WriteLine(errorMessage);
+            var inner = ex.InnerException?.Message ?? "No inner exception details.";
+            errorMessage = $"Error saving purchase order: {ex.Message}\nInner: {inner}";
+            Console.WriteLine($"❌ {errorMessage}");
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
+
     private void EditPurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
     {
         editingPurchaseOrder = po;
@@ -317,6 +362,7 @@
         isFormVisible = true;
         errorMessage = null;
     }
+
     private async Task DeletePurchaseOrder(MyBlazorServerApp.Models.PurchaseOrder po)
     {
         try
@@ -333,32 +379,41 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error deleting purchase order: {ex.Message}";
-            Console.WriteLine(errorMessage);
+            var inner = ex.InnerException?.Message ?? "(no inner exception)";
+            errorMessage = $"Error saving purchase order: {ex.Message}\nInner: {inner}";
+            Console.WriteLine($"❌ {errorMessage}");
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
+
     private async Task PrintPurchaseOrder(int id)
     {
         NavigationManager.NavigateTo($"/purchaseorder/print/{id}");
-        // Note: The printCustom JS function should handle the print action on the target page
     }
+
     private void ApplyFilter()
     {
         filteredPurchaseOrders = purchaseOrders
-            .Where(po => string.IsNullOrEmpty(searchText) || po.POId.Contains(searchText, StringComparison.OrdinalIgnoreCase) || po.SupplierName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(po => string.IsNullOrEmpty(searchText)
+                || po.POId.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                || po.SupplierName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
     }
+
     private void OnSearchInput(ChangeEventArgs e)
     {
         searchText = e.Value?.ToString() ?? string.Empty;
         currentPage = 1;
         ApplyFilter();
     }
+
     private void AddItem()
     {
-        if (purchaseOrderModel.Items == null) purchaseOrderModel.Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>();
+        if (purchaseOrderModel.Items == null)
+            purchaseOrderModel.Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>();
+
         newItem.LineTotal = CalculateLineTotal(newItem);
         purchaseOrderModel.Items.Add(new MyBlazorServerApp.Models.PurchaseOrderItem
         {
@@ -372,20 +427,24 @@
             TaxMode = newItem.TaxMode,
             LineTotal = newItem.LineTotal
         });
+
         newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
         UpdateTotalAmount();
     }
+
     private void RemoveItem(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         purchaseOrderModel.Items?.Remove(item);
         UpdateTotalAmount();
     }
+
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         if (item.Quantity == null || item.Rate == null) return 0;
         decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
         decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
         decimal taxableAmount = baseAmount - discount;
+
         if (item.TaxMode == "Line Inclusive")
         {
             return taxableAmount;
@@ -396,20 +455,24 @@
             return taxableAmount + gst;
         }
     }
+
     private void UpdateTotalAmount()
     {
         purchaseOrderModel.TotalAmount = purchaseOrderModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
     }
+
     private void OnTaxModeChange(ChangeEventArgs e)
     {
         newItem.TaxMode = e.Value?.ToString();
         UpdateLineTotal();
     }
+
     private void UpdateLineTotal()
     {
         newItem.LineTotal = CalculateLineTotal(newItem);
     }
 }
+
 <style>
     .main-card {
         background: #ffffff;

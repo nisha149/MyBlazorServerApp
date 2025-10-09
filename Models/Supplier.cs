@@ -4,6 +4,7 @@ namespace MyBlazorServerApp.Models
 {
     public class Supplier
     {
+        [Key]
         public int Id { get; set; } // Primary Key
 
         [Required]
@@ -12,7 +13,7 @@ namespace MyBlazorServerApp.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; } = string.Empty; // Used as SupplierName in PurchaseOrder
+        public string Name { get; set; } = string.Empty;
 
         [Phone]
         [StringLength(15)]
@@ -28,6 +29,8 @@ namespace MyBlazorServerApp.Models
         [Required]
         [StringLength(20)]
         public string Status { get; set; } = "Active";
+
+        public bool IsDeleted { get; set; } = false;
 
         [StringLength(500)]
         public string? Notes { get; set; }
