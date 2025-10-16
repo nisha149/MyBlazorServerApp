@@ -1,38 +1,21 @@
-﻿# Use the official ASP.NET Core runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+﻿ # Use official .NET 9 SDK image for build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
 
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY ["MyBlazorServerApp.csproj", "./"]
-RUN dotnet restore "MyBlazorServerApp.csproj"
-COPY . .
-RUN dotnet build "MyBlazorServerApp.csproj" -c Release -o /app/build
+# Copy everything and restore dependencies
+COPY . ./
+RUN dotnet restore
 
-FROM build AS publish
-RUN dotnet publish "MyBlazorServerApp.csproj" -c Release -o /app/publish
+# Build and publish release
+RUN dotnet publish -c Release -o out
 
-# Final stage
-FROM base AS final
-# Use the official ASP.NET Core runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+# Use ASP.NET runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+COPY --from=build /app/out .
 
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY ["MyBlazorServerApp.csproj", "./"]
-RUN dotnet restore "MyBlazorServerApp.csproj"
-COPY . .
-RUN dotnet build "MyBlazorServerApp.csproj" -c Release -o /app/build
+# Expose port 8080 for Render
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
 
-FROM build AS publish
-RUN dotnet publish "MyBlazorServerApp.csproj" -c Release -o /app/publish
-
-# Final stage
-FROM base AS final
+ENTRYPOINT ["dotnet", "MyBlazorServerApp.dll"]
