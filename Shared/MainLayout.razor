@@ -120,11 +120,17 @@
 }
 
 <style>
+    /* Ensure body has no default background */
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa; /* Set body background to match main content */
+    }
+
     .layout-container {
         display: flex;
         height: 100vh;
         overflow: hidden;
-        background-color: #f8f9fa;
     }
 
     /* Fixed Hamburger Icon */
@@ -210,6 +216,7 @@
     .main-content {
         flex: 1;
         overflow-y: auto;
+        background-color: #f8f9fa;
     }
 
     /* Topbar */
