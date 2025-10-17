@@ -1,19 +1,27 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Routing
+
 <div class="layout-container">
+    <!-- Fixed Hamburger Icon (Top-left corner, outside topbar) -->
+    <button class="fixed-hamburger" @onclick="ToggleMenu">
+        <i class="bi bi-list"></i>
+    </button>
+
     <!-- Sidebar -->
-    <nav class="sidebar">
+    <nav class="sidebar @(isMenuOpen ? "open" : "")">
         <div class="sidebar-header">
-            <button class="hamburger-menu" @onclick="ToggleMenu">
-                <i class="bi bi-list"></i>
+            <button class="close-menu" @onclick="ToggleMenu">
+                <i class="bi bi-x-lg"></i>
             </button>
         </div>
-        <ul class="nav-links @(isMenuOpen ? "open" : "")">
+        <ul class="nav-links">
             <li>
                 <NavLink href="/" Match="NavLinkMatch.All">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </NavLink>
             </li>
-            <!-- Master with submenu -->
+
+            <!-- Master Menu -->
             <li>
                 <a href="javascript:void(0)" @onclick="ToggleMasterMenu">
                     <i class="bi bi-layers"></i> Master
@@ -21,20 +29,15 @@
                 @if (isMasterMenuOpen)
                 {
                     <ul class="submenu">
-                        <li>
-                            <NavLink href="/productgroups"><i class="bi bi-grid"></i> ProductGroup</NavLink>
-                        </li>
-                        <li>
-                            <NavLink href="/products"><i class="bi bi-box-seam"></i> Products</NavLink>
-                        </li>
+                        <li><NavLink href="/productgroups"><i class="bi bi-grid"></i> ProductGroup</NavLink></li>
+                        <li><NavLink href="/products"><i class="bi bi-box-seam"></i> Products</NavLink></li>
                         <li><NavLink href="/customers"><i class="bi bi-people"></i> Customers</NavLink></li>
-                        <li>
-                            <NavLink href="/supplier"><i class="bi bi-truck"></i> Supplier</NavLink>
-                        </li>
+                        <li><NavLink href="/supplier"><i class="bi bi-truck"></i> Supplier</NavLink></li>
                     </ul>
                 }
             </li>
-            <!-- Transaction with submenu -->
+
+            <!-- Transaction Menu -->
             <li>
                 <a href="javascript:void(0)" @onclick="ToggleTransactionMenu">
                     <i class="bi bi-cash-stack"></i> Transaction
@@ -49,13 +52,14 @@
                             @if (isPurchaseMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/purchaseorder" class="menu-item"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
-                                    <li><NavLink href="/purchaseinvoice" class="menu-item"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
-                                    <li><NavLink href="/purchasereturn" class="menu-item"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
-                                    <li><NavLink href="/paymentout" class="menu-item"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
+                                    <li><NavLink href="/purchaseorder"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
+                                    <li><NavLink href="/purchaseinvoice"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
+                                    <li><NavLink href="/purchasereturn"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
+                                    <li><NavLink href="/paymentout"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
                                 </ul>
                             }
                         </li>
+
                         <li>
                             <a href="javascript:void(0)" @onclick="ToggleSalesMenu">
                                 <i class="bi bi-cart-check"></i> Sales
@@ -63,155 +67,152 @@
                             @if (isSalesMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/salesorder" class="menu-item"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
-                                    <li><NavLink href="/salesinvoice" class="menu-item"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
+                                    <li><NavLink href="/salesorder"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
+                                    <li><NavLink href="/salesinvoice"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
                                 </ul>
                             }
                         </li>
                     </ul>
                 }
             </li>
+
             <li><NavLink href="#"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
             <li><NavLink href="#"><i class="bi bi-person"></i> Profile</NavLink></li>
             <li><NavLink href="#"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
         </ul>
     </nav>
+
     <!-- Main Content -->
     <div class="main-content">
         <!-- Top Bar -->
         <header class="topbar">
-            <div>
+            <div class="welcome-text">
                 <h4>Welcome, <span class="username">User</span></h4>
                 <p>Here’s a summary of today’s operational status</p>
             </div>
+
             <div class="user-info">
                 <span class="role">Role: N/A</span><br />
                 <span class="company">Company: Kalpaka Organics</span>
                 <img src="images/user.png" class="user-avatar" alt="User Avatar" />
             </div>
         </header>
+
         <!-- Page Body -->
         <div class="page-shell">
             @Body
         </div>
     </div>
 </div>
+
 @code {
-    private bool isMenuOpen = true;
+    private bool isMenuOpen = false;
     private bool isMasterMenuOpen = false;
     private bool isTransactionMenuOpen = false;
     private bool isPurchaseMenuOpen = false;
     private bool isSalesMenuOpen = false;
-    private void ToggleMenu()
-    {
-        isMenuOpen = !isMenuOpen;
-    }
-    private void ToggleMasterMenu()
-    {
-        isMasterMenuOpen = !isMasterMenuOpen;
-    }
-    private void ToggleTransactionMenu()
-    {
-        isTransactionMenuOpen = !isTransactionMenuOpen;
-    }
-    private void TogglePurchaseMenu()
-    {
-        isPurchaseMenuOpen = !isPurchaseMenuOpen;
-    }
-    private void ToggleSalesMenu()
-    {
-        isSalesMenuOpen = !isSalesMenuOpen;
-    }
+
+    private void ToggleMenu() => isMenuOpen = !isMenuOpen;
+    private void ToggleMasterMenu() => isMasterMenuOpen = !isMasterMenuOpen;
+    private void ToggleTransactionMenu() => isTransactionMenuOpen = !isTransactionMenuOpen;
+    private void TogglePurchaseMenu() => isPurchaseMenuOpen = !isPurchaseMenuOpen;
+    private void ToggleSalesMenu() => isSalesMenuOpen = !isSalesMenuOpen;
 }
+
 <style>
-    .submenu {
-        list-style: none;
-        padding-left: 30px;
-        margin: 5px 0;
-    }
-    .submenu li {
-        margin: 5px 0;
-    }
-    .submenu a {
-        font-size: 13px;
-        padding: 5px 15px;
-        display: flex;
-        align-items: center;
-        color: white;
-        text-decoration: none;
-    }
-    .submenu a i {
-        margin-right: 10px;
-    }
-    .submenu a:hover {
-        background-color: #2d4b9e;
-    }
-    /* Ensure nested submenus align properly */
-    .submenu .submenu {
-        padding-left: 20px;
-    }
-    /* Style menu items as single-line labels */
-    .menu-item {
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-    }
-    .menu-item i {
-        margin-right: 10px;
-    }
     .layout-container {
         display: flex;
         height: 100vh;
         overflow: hidden;
+        background-color: #f8f9fa;
     }
+
+    /* Fixed Hamburger Icon */
+    .fixed-hamburger {
+        position: fixed;
+        top: 15px;
+        left: 20px;
+        background: none;
+        border: none;
+        color: #1e3a8a;
+        font-size: 30px;
+        cursor: pointer;
+        z-index: 1100;
+    }
+
+    /* Sidebar */
     .sidebar {
         width: 250px;
         background: #1e3a8a;
         color: white;
-        transition: width 0.3s ease;
+        transition: transform 0.3s ease;
         position: fixed;
         height: 100%;
         overflow-y: auto;
+        transform: translateX(-100%);
+        z-index: 1000;
     }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
     .sidebar-header {
         padding: 15px;
         border-bottom: 1px solid #2d4b9e;
+        display: flex;
+        justify-content: flex-end;
     }
-    .hamburger-menu {
+
+    .close-menu {
         background: none;
         border: none;
         color: white;
-        font-size: 20px;
+        font-size: 22px;
         cursor: pointer;
     }
+
     .nav-links {
         list-style: none;
         padding: 0;
         margin: 0;
     }
-    .nav-links li a {
-        display: flex;
-        align-items: center;
-        padding: 10px 15px;
-        color: white;
-        text-decoration: none;
-        font-size: 16px;
+
+        .nav-links li a {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+            .nav-links li a:hover {
+                background-color: #2d4b9e;
+            }
+
+    .submenu {
+        list-style: none;
+        padding-left: 30px;
+        margin: 5px 0;
     }
-    .nav-links li a i {
-        margin-right: 10px;
-    }
-    .nav-links li a:hover {
-        background-color: #2d4b9e;
-    }
-    .nav-links.open {
-        display: block;
-    }
+
+        .submenu a {
+            font-size: 13px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+        }
+
+    /* Main Content */
     .main-content {
         flex: 1;
-        margin-left: 250px;
-        transition: margin-left 0.3s ease;
         overflow-y: auto;
     }
+
+    /* Topbar */
     .topbar {
         display: flex;
         justify-content: space-between;
@@ -219,106 +220,67 @@
         padding: 15px 20px;
         background: #f8f9fa;
         border-bottom: 1px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 900;
     }
-    .topbar h4 {
+
+    .welcome-text h4 {
         margin: 0;
         font-size: 18px;
         color: #1e3a8a;
+        text-align: center;
     }
-    .username {
-        color: #2d4b9e;
+
+    .welcome-text p {
+        margin: 0;
+        font-size: 13px;
+        color: #555;
+        text-align: center;
     }
+
     .user-info {
         display: flex;
         align-items: center;
         gap: 10px;
     }
+
     .user-avatar {
         width: 40px;
         height: 40px;
         border-radius: 50%;
     }
+
     .page-shell {
         padding: 20px;
     }
-    /* Responsive Adjustments */
+
+    /* Mobile View */
     @@media (max-width: 768px) {
-        /* Mobile View */
-        .sidebar {
-            width: 0;
-            transform: translateX(-250px);
-        }
-        .sidebar.open {
-            width: 250px;
-            transform: translateX(0);
-        }
-        .main-content {
-            margin-left: 0;
-        }
-        .nav-links {
-            display: none;
-        }
-        .nav-links.open {
-            display: block;
-        }
         .topbar {
             flex-direction: column;
-            gap: 10px;
-            padding: 10px;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
         }
-        .topbar h4 {
+
+        .welcome-text h4 {
             font-size: 16px;
         }
-        .user-info {
-            flex-direction: column;
-            align-items: flex-end;
-        }
-        .page-shell {
-            padding: 10px;
-        }
-    }
-    @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .sidebar {
-            width: 200px;
-        }
-        .main-content {
-            margin-left: 200px;
-        }
-        .topbar h4 {
-            font-size: 17px;
-        }
-        .nav-links li a {
-            font-size: 14px;
-            padding: 8px 12px;
-        }
-        .submenu a {
+
+        .welcome-text p {
             font-size: 12px;
         }
-        .page-shell {
-            padding: 15px;
+
+        .user-info {
+            flex-direction: row;
+            justify-content: center;
+            font-size: 12px;
         }
-    }
-    @@media (min-width: 1025px) {
-        /* Desktop View */
-        .sidebar {
-            width: 250px;
-        }
-        .main-content {
-            margin-left: 250px;
-        }
-        .topbar h4 {
-            font-size: 18px;
-        }
-        .nav-links li a {
-            font-size: 16px;
-            padding: 10px 15px;
-        }
-        .submenu a {
-            font-size: 13px;
-        }
-        .page-shell {
-            padding: 20px;
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
         }
     }
 </style>
