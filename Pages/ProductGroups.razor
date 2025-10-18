@@ -348,30 +348,43 @@
 
     .add-card {
         width: 100%;
+        padding: 15px; /* Increased padding for better spacing */
     }
 
-    .form-actions {
-        text-align: center;
+    .form-item {
+        margin-bottom: 20px; /* More space between form items */
+    }
+
+    .form-control {
+        padding: 10px; /* Larger input fields */
+        font-size: 16px; /* Bigger text for readability */
     }
 
     .customer-table-box table {
-        display: block;
-        overflow-x: auto;
+        display: table; /* Remove scroll, use full width */
+        width: 100%; /* Ensure table takes full width */
     }
 
     .table-custom th, .table-custom td {
-        min-width: 100px;
-        padding: 8px;
-        font-size: 14px;
+        min-width: 150px; /* Increased min-width for better readability */
+        padding: 12px; /* More padding for cells */
+        font-size: 16px; /* Larger text */
+        white-space: normal; /* Allow text to wrap */
     }
 
     .table-custom th {
-        white-space: nowrap;
+        white-space: nowrap; /* Keep headers on one line */
     }
 
     .btn-primary, .btn-warning, .btn-danger {
         width: 100%;
-        margin-bottom: 5px;
+        margin-bottom: 10px;
+        padding: 10px; /* Larger buttons */
+        font-size: 16px; /* Bigger text on buttons */
+    }
+
+    .form-actions {
+        text-align: center;
     }
 
     }
