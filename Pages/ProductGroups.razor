@@ -35,8 +35,14 @@
                         <tr>
                             <td>@group.Name</td>
                             <td>
-                                <button class="btn btn-warning btn-sm me-1" @onclick="() => EditGroup(group)">Edit</button>
-                                <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group)">Delete</button>
+                                <button class="btn btn-warning btn-sm me-1" @onclick="() => EditGroup(group)">
+                                    <span class="desktop-text">Edit</span>
+                                    <i class="bi bi-pencil mobile-icon"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group)">
+                                    <span class="desktop-text">Delete</span>
+                                    <i class="bi bi-trash mobile-icon"></i>
+                                </button>
                             </td>
                         </tr>
                     }
@@ -348,85 +354,56 @@
 
     .add-card {
         width: 100%;
-        padding: 25px; /* Increased padding for larger box */
-        margin: 15px auto; /* More margin for spacing */
-    }
-
-    .form-item {
-        margin-bottom: 25px; /* Increased spacing between items */
-    }
-
-    .form-control {
-        padding: 12px; /* Larger input area */
-        font-size: 14px; /* Smaller text for comfort */
-    }
-
-    .customer-table-box {
-        margin-top: 15px;
-    }
-
-        .customer-table-box table {
-            display: table; /* Full width table */
-            width: 100%;
-        }
-
-    .table-custom th, .table-custom td {
-        min-width: 120px; /* Reduced min-width for smaller text */
-        padding: 15px; /* Increased padding for larger box */
-        font-size: 14px; /* Smaller text for comfort */
-        white-space: normal; /* Allow text to wrap */
-    }
-
-    .table-custom th {
-        white-space: nowrap; /* Keep headers on one line */
-    }
-
-    .btn-primary, .btn-warning, .btn-danger {
-        width: 100%;
-        margin-bottom: 15px; /* More spacing between buttons */
-        padding: 12px; /* Larger button area */
-        font-size: 14px; /* Smaller text for comfort */
     }
 
     .form-actions {
         text-align: center;
     }
 
-    }
-
-    @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .page-title
-
-    {
-        font-size: 22px;
-    }
-
-    .subtitle {
-        font-size: 15px;
-    }
-
-    .action-container {
-        justify-content: flex-end;
-    }
-
-    .add-card {
-        width: 85%;
-    }
-
-    .form-actions {
-        text-align: right;
+    .customer-table-box table {
+        display: block;
+        overflow-x: auto;
     }
 
     .table-custom th, .table-custom td {
+        min-width: 100px;
         padding: 8px;
         font-size: 14px;
     }
 
+    .table-custom th {
+        white-space: nowrap;
     }
 
-    @@media (min-width: 1025px) {
-        /* Desktop View */
+    .btn-primary, .btn-warning, .btn-danger {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    /* Mobile-specific: Show only icons and make buttons smaller and square */
+    .desktop-text {
+        display: none;
+    }
+
+    .mobile-icon {
+        display: inline;
+        font-size: 16px; /* Icon size */
+    }
+
+    .btn-warning, .btn-danger {
+        width: 30px; /* Square width */
+        height: 30px; /* Square height */
+        padding: 0; /* Remove default padding */
+        border-radius: 4px; /* Slight rounding for square shape */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    }
+
+    @@media (min-width: 769px) {
+        /* Desktop/Tablet View */
         .page-title
 
     {
@@ -452,6 +429,15 @@
     .table-custom th, .table-custom td {
         padding: 10px;
         font-size: 16px;
+    }
+
+    /* Desktop-specific: Show only text */
+    .desktop-text {
+        display: inline;
+    }
+
+    .mobile-icon {
+        display: none;
     }
 
     }
