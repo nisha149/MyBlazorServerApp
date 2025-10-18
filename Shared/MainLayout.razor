@@ -144,6 +144,7 @@
         font-size: 30px;
         cursor: pointer;
         z-index: 1100;
+        background-color: #f8f9fa; /* Match main page background */
     }
 
     /* Sidebar */
@@ -162,6 +163,21 @@
         .sidebar.open {
             transform: translateX(0);
         }
+
+    /* Hide sidebar by default on mobile and adjust width */
+    @@media (max-width: 768px) {
+        .sidebar
+
+    {
+        width: 70%; /* Reduced width to avoid covering half the screen */
+        transform: translateX(-100%); /* Hidden by default */
+    }
+
+    .sidebar.open {
+        transform: translateX(0); /* Slide in when open */
+    }
+
+    }
 
     .sidebar-header {
         padding: 15px;
@@ -217,6 +233,8 @@
         flex: 1;
         overflow-y: auto;
         background-color: #f8f9fa;
+        margin-left: 0; /* Remove any margin for sidebar space */
+        width: 100%; /* Full width when sidebar is closed */
     }
 
     /* Topbar */
@@ -264,30 +282,60 @@
 
     /* Mobile View */
     @@media (max-width: 768px) {
-        .topbar {
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            text-align: center;
-        }
+        .topbar
 
-        .welcome-text h4 {
-            font-size: 16px;
-        }
+    {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-align: center;
+    }
 
-        .welcome-text p {
-            font-size: 12px;
-        }
+    .welcome-text h4 {
+        font-size: 16px;
+    }
 
-        .user-info {
-            flex-direction: row;
-            justify-content: center;
-            font-size: 12px;
-        }
+    .welcome-text p {
+        font-size: 12px;
+    }
 
-        .user-avatar {
-            width: 35px;
-            height: 35px;
-        }
+    .user-info {
+        flex-direction: row;
+        justify-content: center;
+        font-size: 12px;
+    }
+
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+    }
+
+    .main-content {
+        margin-left: 0; /* No sidebar margin on mobile */
+    }
+
     }
 </style>
+
+<script>
+    window.printCustom = async (elementId) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const printWindow = window.open('', '', 'height=600,width=800');
+            if (printWindow) {
+                printWindow.document.write('<html><head><title>Print Purchase Order</title>');
+                printWindow.document.write('<link rel="stylesheet" href="/css/print.css" media="print" />');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(element.innerHTML);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.print();
+                printWindow.close();
+            } else {
+                alert('Popup blocked. Please allow popups for this site.');
+            }
+        } else {
+            console.error('Element not found:', elementId);
+        }
+    };
+</script>
