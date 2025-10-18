@@ -177,7 +177,6 @@
                                         }
                                     }
                                 </tbody>
-
                             </table>
                         </div>
                         <div class="summary">
@@ -644,6 +643,30 @@
                         }
                     }
 
+                    // Update stock for each item
+                    foreach (var item in salesInvoiceModel.Items)
+                    {
+                        var product = await db.Products.FindAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            if (product.StockQuantity < (int)item.Quantity)
+                            {
+                                errorMessage = $"Insufficient stock for product {product.Name}. Available: {product.StockQuantity}, Required: {(int)item.Quantity}";
+                                await transaction.RollbackAsync();
+                                return;
+                            }
+                            product.StockQuantity -= (int)item.Quantity;
+                            db.Products.Update(product);
+                            await db.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            errorMessage = $"Product with ID {item.ProductId} not found.";
+                            await transaction.RollbackAsync();
+                            return;
+                        }
+                    }
+
                     await db.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -658,7 +681,7 @@
 
                     // Reload sales invoices and update filtered list
                     await OnInitializedAsync();
-                    ApplyFilter(); // <--- This ensures the new invoice shows in the list
+                    ApplyFilter();
 
                     errorMessage = "Sales invoice saved successfully.";
                 }
@@ -674,7 +697,6 @@
             errorMessage = $"Error executing transaction: {ex.Message}";
         }
     }
-
 
     private void EditSalesInvoice(MyBlazorServerApp.Models.SalesInvoice si)
     {
@@ -757,6 +779,7 @@
         searchText = e.Value?.ToString() ?? string.Empty;
         ApplyFilter();
     }
+
     private void AddItem()
     {
         if (salesInvoiceModel.Items == null)

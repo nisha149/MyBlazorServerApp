@@ -1,4 +1,4 @@
-﻿@page "/products"
+﻿ @page "/products"
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.EntityFrameworkCore
 @using MyBlazorServerApp.Models
@@ -119,13 +119,14 @@
                         <th style="background-color: #1e3a8a; color: white;">CATEGORY</th>
                         <th style="background-color: #1e3a8a; color: white;">UNIT</th>
                         <th style="background-color: #1e3a8a; color: white;">RATE (₹)</th>
+                        <th style="background-color: #1e3a8a; color: white;">Stock</th> <!-- Added Stock column -->
                         <th style="background-color: #1e3a8a; color: white; width:180px;">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (filteredProducts.Count == 0)
                     {
-                        <tr><td colspan="6" class="text-center">No products found.</td></tr>
+                        <tr><td colspan="7" class="text-center">No products found.</td></tr> <!-- Updated colspan to 7 -->
                     }
                     else
                     {
@@ -137,6 +138,7 @@
                                 <td>@(product.ProductGroup?.Name ?? "N/A")</td>
                                 <td>@product.Unit</td>
                                 <td>₹@product.RetailRate</td>
+                                <td>@product.StockQuantity</td> <!-- Added StockQuantity -->
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="@(() => EditProduct(product))">Edit</button>
                                     <button class="btn btn-danger btn-sm" @onclick="@(() => DeleteProduct(product))">Delete</button>
@@ -609,4 +611,5 @@
         .pagination-info {
             text-align: right;
         }
+    }
 </style>

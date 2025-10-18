@@ -9,7 +9,7 @@
         public string? Unit { get; set; }
         public decimal NextPurchaseRate { get; set; }
         public decimal? GstPercentage { get; set; }
-        public int StockQuantity { get; set; }
+        public int StockQuantity { get; set; } = 0; 
         public decimal? Mrp { get; set; }
         public decimal? DiscountPercentage { get; set; }
         public decimal RetailRate { get; set; }
