@@ -19,7 +19,7 @@
         </div>
         <ul class="nav-links">
             <li>
-                <NavLink href="/" Match="NavLinkMatch.All">
+                <NavLink href="/" Match="NavLinkMatch.All" @onclick="@(isMobile? ToggleMenu : null)">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </NavLink>
             </li>
@@ -32,10 +32,10 @@
                 @if (isMasterMenuOpen)
                 {
                     <ul class="submenu">
-                        <li><NavLink href="/productgroups"><i class="bi bi-grid"></i> ProductGroup</NavLink></li>
-                        <li><NavLink href="/products"><i class="bi bi-box-seam"></i> Products</NavLink></li>
-                        <li><NavLink href="/customers"><i class="bi bi-people"></i> Customers</NavLink></li>
-                        <li><NavLink href="/supplier"><i class="bi bi-truck"></i> Supplier</NavLink></li>
+                        <li><NavLink href="/productgroups" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-grid"></i> ProductGroup</NavLink></li>
+                        <li><NavLink href="/products" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-box-seam"></i> Products</NavLink></li>
+                        <li><NavLink href="/customers" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-people"></i> Customers</NavLink></li>
+                        <li><NavLink href="/supplier" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-truck"></i> Supplier</NavLink></li>
                     </ul>
                 }
             </li>
@@ -55,10 +55,10 @@
                             @if (isPurchaseMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/purchaseorder"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
-                                    <li><NavLink href="/purchaseinvoice"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
-                                    <li><NavLink href="/purchasereturn"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
-                                    <li><NavLink href="/paymentout"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
+                                    <li><NavLink href="/purchaseorder" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
+                                    <li><NavLink href="/purchaseinvoice" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
+                                    <li><NavLink href="/purchasereturn" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
+                                    <li><NavLink href="/paymentout" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
                                 </ul>
                             }
                         </li>
@@ -70,8 +70,8 @@
                             @if (isSalesMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/salesorder"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
-                                    <li><NavLink href="/salesinvoice"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
+                                    <li><NavLink href="/salesorder" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
+                                    <li><NavLink href="/salesinvoice" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
                                 </ul>
                             }
                         </li>
@@ -79,14 +79,14 @@
                 }
             </li>
 
-            <li><NavLink href="#"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
-            <li><NavLink href="#"><i class="bi bi-person"></i> Profile</NavLink></li>
-            <li><NavLink href="#"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-person"></i> Profile</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
         </ul>
     </nav>
 
     <!-- Main Content -->
-    <div class="main-content" @onclick="@(isMobile? ToggleMenu : null)">
+    <div class="main-content">
         <!-- Top Bar -->
         <header class="topbar">
             <div class="welcome-text">
