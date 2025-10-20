@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.JSInterop
+
+@inject IJSRuntime JSRuntime
 
 <div class="layout-container">
     <!-- Fixed Hamburger Icon (Top-left corner, outside topbar) -->
@@ -8,7 +11,7 @@
     </button>
 
     <!-- Sidebar -->
-    <nav class="sidebar @(isMenuOpen ? "open" : "")">
+    <nav class="sidebar @(isMenuOpen ? "open" : "")" @onclick:stopPropagation>
         <div class="sidebar-header">
             <button class="close-menu" @onclick="ToggleMenu">
                 <i class="bi bi-x-lg"></i>
@@ -83,7 +86,7 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="main-content">
+    <div class="main-content" @onclick="@(isMobile? ToggleMenu : null)">
         <!-- Top Bar -->
         <header class="topbar">
             <div class="welcome-text">
@@ -111,8 +114,32 @@
     private bool isTransactionMenuOpen = false;
     private bool isPurchaseMenuOpen = false;
     private bool isSalesMenuOpen = false;
+    private bool isMobile = false;
 
-    private void ToggleMenu() => isMenuOpen = !isMenuOpen;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize mobile detection via JS Interop
+            isMobile = await JSRuntime.InvokeAsync<bool>("isMobileDevice");
+            // Set up resize listener
+            await JSRuntime.InvokeVoidAsync("setupResizeListener", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateMobileState(bool mobile)
+    {
+        isMobile = mobile;
+        StateHasChanged();
+    }
+
+    private void ToggleMenu()
+    {
+        isMenuOpen = !isMenuOpen;
+        StateHasChanged();
+    }
+
     private void ToggleMasterMenu() => isMasterMenuOpen = !isMasterMenuOpen;
     private void ToggleTransactionMenu() => isTransactionMenuOpen = !isTransactionMenuOpen;
     private void TogglePurchaseMenu() => isPurchaseMenuOpen = !isPurchaseMenuOpen;
@@ -164,7 +191,37 @@
             transform: translateX(0);
         }
 
-    /* Hide sidebar by default on mobile and adjust width */
+        /* Prevent click events from bubbling up to main-content */
+        .sidebar, .sidebar * {
+            -webkit-tap-highlight-color: transparent; /* Prevent tap highlight on mobile */
+        }
+
+    /* Desktop adjustments */
+    @@media (min-width: 769px) {
+        .sidebar
+
+    {
+        transform: translateX(0); /* Sidebar stays visible by default */
+    }
+
+    .sidebar.open {
+        transform: translateX(0); /* No change needed, already visible */
+    }
+
+    .main-content {
+        margin-left: 250px; /* Adjust main content to account for sidebar */
+        width: calc(100% - 250px); /* Ensure main content takes remaining space */
+        transition: margin-left 0.3s ease, width 0.3s ease;
+    }
+
+        .main-content.no-sidebar {
+            margin-left: 0;
+            width: 100%;
+        }
+
+    }
+
+    /* Mobile adjustments */
     @@media (max-width: 768px) {
         .sidebar
 
@@ -175,6 +232,11 @@
 
     .sidebar.open {
         transform: translateX(0); /* Slide in when open */
+    }
+
+    .main-content {
+        margin-left: 0; /* No sidebar margin on mobile */
+        width: 100%; /* Full width */
     }
 
     }
@@ -233,8 +295,7 @@
         flex: 1;
         overflow-y: auto;
         background-color: #f8f9fa;
-        margin-left: 0; /* Remove any margin for sidebar space */
-        width: 100%; /* Full width when sidebar is closed */
+        transition: margin-left 0.3s ease, width 0.3s ease;
     }
 
     /* Topbar */
@@ -305,13 +366,13 @@
         font-size: 12px;
     }
 
+        .user-info .company {
+            display: none; /* Hide company info on mobile to save space */
+        }
+
     .user-avatar {
         width: 35px;
         height: 35px;
-    }
-
-    .main-content {
-        margin-left: 0; /* No sidebar margin on mobile */
     }
 
     }
@@ -337,5 +398,19 @@
         } else {
             console.error('Element not found:', elementId);
         }
+    };
+
+    window.isMobileDevice = () => {
+        return window.innerWidth <= 768;
+    };
+
+    window.setupResizeListener = (dotNetObject) => {
+        const handleResize = () => {
+            const isMobile = window.innerWidth <= 768;
+            dotNetObject.invokeMethodAsync('UpdateMobileState', isMobile);
+        };
+        window.addEventListener('resize', handleResize);
+        // Initial call to set the state
+        handleResize();
     };
 </script>
