@@ -230,10 +230,6 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         padding: 20px;
         margin-bottom: 20px;
-        width: 100%; /* Full width on mobile, adjustable on desktop */
-        max-width: 1200px; /* Increased max width for better mobile fit */
-        margin-left: auto;
-        margin-right: auto;
     }
 
     .header-container {
@@ -342,150 +338,99 @@
     /* Responsive Adjustments */
     @@media (max-width: 768px) {
         /* Mobile View */
-        .page-title
-
-    {
-        font-size: 20px;
-    }
-
-    .subtitle {
-        font-size: 14px;
-    }
-
-    .action-container {
-        justify-content: center;
-    }
-
-    .add-card {
-        width: 100%;
-    }
-
-    .form-actions {
-        text-align: center;
-    }
-
-    .customer-table-box {
-        overflow-x: hidden; /* Remove horizontal scrolling */
-    }
-
-    .table-custom {
-        display: none; /* Hide the table on mobile */
-    }
-
-    .customer-table-box .mobile-table {
-        display: block; /* Show mobile card layout */
-    }
-
-    .mobile-table .table-row {
-        display: flex;
-        flex-direction: column;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .mobile-table .row-item {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 10px;
-    }
-
-        .mobile-table .row-item.actions {
-            flex-direction: row;
-            justify-content: center;
-            gap: 15px;
+        .page-title {
+            font-size: 20px;
         }
 
-    .mobile-table .label {
-        font-weight: bold;
-        color: #1e3a8a;
-        margin-bottom: 5px;
-    }
+        .subtitle {
+            font-size: 14px;
+        }
 
-    .mobile-table .value {
-        padding: 5px;
-        word-break: break-word;
-    }
+        .action-container {
+            justify-content: center;
+        }
 
-    .btn-primary {
-        width: 100%;
-        padding: 10px;
-        font-size: 16px;
-    }
+        .add-card {
+            width: 100%;
+        }
 
-    .btn-warning, .btn-danger {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-    }
+        .form-actions {
+            text-align: center;
+        }
 
-    .desktop-text {
-        display: none;
-    }
-
-    .mobile-icon {
-        display: inline;
-    }
-
-    }
-
-    @@media (min-width: 769px) {
-        /* Desktop/Tablet View (No Changes) */
-        .page-title
-
-    {
-        font-size: 24px;
-    }
-
-    .subtitle {
-        font-size: 16px;
-    }
-
-    .action-container {
-        justify-content: flex-end;
-    }
-
-    .add-card {
-        width: 90%;
-    }
-
-    .form-actions {
-        text-align: right;
-    }
-
-    .customer-table-box {
-        overflow-x: auto;
-    }
-
-    .table-custom {
-        display: table;
-    }
+        .customer-table-box table {
+            display: block;
+            overflow-x: auto;
+        }
 
         .table-custom th, .table-custom td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            min-width: 100px;
+            padding: 8px;
+            font-size: 14px;
         }
 
         .table-custom th {
-            background-color: #1e3a8a;
-            color: white;
+            white-space: nowrap;
         }
 
-    .desktop-text {
-        display: inline;
+        .btn-primary, .btn-warning, .btn-danger {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        /* Mobile-specific: Show only icons and make buttons smaller and square */
+        .desktop-text {
+            display: none;
+        }
+
+        .mobile-icon {
+            display: inline;
+            font-size: 16px; /* Icon size */
+        }
+
+        .btn-warning, .btn-danger {
+            width: 30px; /* Square width */
+            height: 30px; /* Square height */
+            padding: 0; /* Remove default padding */
+            border-radius: 4px; /* Slight rounding for square shape */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     }
 
-    .mobile-icon {
-        display: none;
-    }
+    @@media (min-width: 769px) {
+        /* Desktop/Tablet View */
+        .page-title {
+            font-size: 24px;
+        }
 
+        .subtitle {
+            font-size: 16px;
+        }
+
+        .action-container {
+            justify-content: flex-end;
+        }
+
+        .add-card {
+            width: 90%;
+        }
+
+        .form-actions {
+            text-align: right;
+        }
+
+        .table-custom th, .table-custom td {
+            padding: 10px;
+            font-size: 16px;
+        }
+        /* Desktop-specific: Show only text */
+        .desktop-text {
+            display: inline;
+        }
+
+        .mobile-icon {
+            display: none;
+        }
     }
-</style>
+</style> 
