@@ -95,7 +95,7 @@
                                 <td>@customer.Gstin</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="() => EditCustomer(customer)">Edit</button>
-                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteCustomer(customer)">Delete</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="async () => DeleteCustomer(customer)">Delete</button>
                                 </td>
                             </tr>
                         }
@@ -215,7 +215,7 @@
             var existing = await db.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id);
             if (existing != null)
             {
-                db.Customers.Remove(existing);
+                existing.IsDeleted = true;
                 await db.SaveChangesAsync();
                 await LoadCustomers();
             }
