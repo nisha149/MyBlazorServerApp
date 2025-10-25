@@ -1,9 +1,12 @@
-﻿@page "/"
+﻿ @page "/"
 @namespace MyBlazorServerApp.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.AspNetCore.Components.Authorization   
+
 @{
     Layout = null;
 }
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,13 +22,17 @@
 </head>
 <body>
     <div id="app">
-        <component type="typeof(App)" render-mode="ServerPrerendered" />
+        <CascadingAuthenticationState>
+            <component type="typeof(App)" render-mode="Server" />
+        </CascadingAuthenticationState>
     </div>
+
     <script src="_framework/blazor.server.js"></script>
     <script src="~/js/site.js"></script>
     <script src="~/js/print.js"></script>
     <script src="~/js/interop.js"></script>
-    <!-- custom print helper -->
+
+    <!-- Print helper -->
     <script>
         function printCustom(divId) {
             var content = document.getElementById(divId)?.innerHTML;

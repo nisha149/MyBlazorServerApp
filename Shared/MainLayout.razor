@@ -20,22 +20,22 @@
         <ul class="nav-links">
             <li>
                 <NavLink href="/" Match="NavLinkMatch.All" @onclick="@(isMobile? ToggleMenu : null)">
-                    <i class="bi bi-speedometer2"></i> Dashboard
+                    Dashboard
                 </NavLink>
             </li>
 
             <!-- Master Menu -->
             <li>
                 <a href="javascript:void(0)" @onclick="ToggleMasterMenu">
-                    <i class="bi bi-layers"></i> Master
+                    Master
                 </a>
                 @if (isMasterMenuOpen)
                 {
                     <ul class="submenu">
-                        <li><NavLink href="/productgroups" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-grid"></i> ProductGroup</NavLink></li>
-                        <li><NavLink href="/products" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-box-seam"></i> Products</NavLink></li>
-                        <li><NavLink href="/customers" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-people"></i> Customers</NavLink></li>
-                        <li><NavLink href="/supplier" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-truck"></i> Supplier</NavLink></li>
+                        <li><NavLink href="/productgroups" @onclick="@(isMobile? ToggleMenu : null)">ProductGroup</NavLink></li>
+                        <li><NavLink href="/products" @onclick="@(isMobile? ToggleMenu : null)">Products</NavLink></li>
+                        <li><NavLink href="/customers" @onclick="@(isMobile? ToggleMenu : null)">Customers</NavLink></li>
+                        <li><NavLink href="/supplier" @onclick="@(isMobile? ToggleMenu : null)">Supplier</NavLink></li>
                     </ul>
                 }
             </li>
@@ -43,35 +43,35 @@
             <!-- Transaction Menu -->
             <li>
                 <a href="javascript:void(0)" @onclick="ToggleTransactionMenu">
-                    <i class="bi bi-cash-stack"></i> Transaction
+                    Transaction
                 </a>
                 @if (isTransactionMenuOpen)
                 {
                     <ul class="submenu">
                         <li>
                             <a href="javascript:void(0)" @onclick="TogglePurchaseMenu">
-                                <i class="bi bi-cart-plus"></i> Purchase
+                                Purchase
                             </a>
                             @if (isPurchaseMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/purchaseorder" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt"></i> Purchase Order</NavLink></li>
-                                    <li><NavLink href="/purchaseinvoice" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt-cutoff"></i> Purchase Invoice</NavLink></li>
-                                    <li><NavLink href="/purchasereturn" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-arrow-return-left"></i> Purchase Return</NavLink></li>
-                                    <li><NavLink href="/paymentout" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-wallet2"></i> Payment Out</NavLink></li>
+                                    <li><NavLink href="/purchaseorder" @onclick="@(isMobile? ToggleMenu : null)">Purchase Order</NavLink></li>
+                                    <li><NavLink href="/purchaseinvoice" @onclick="@(isMobile? ToggleMenu : null)">Purchase Invoice</NavLink></li>
+                                    <li><NavLink href="/purchasereturn" @onclick="@(isMobile? ToggleMenu : null)">Purchase Return</NavLink></li>
+                                    <li><NavLink href="/paymentout" @onclick="@(isMobile? ToggleMenu : null)">Payment Out</NavLink></li>
                                 </ul>
                             }
                         </li>
 
                         <li>
                             <a href="javascript:void(0)" @onclick="ToggleSalesMenu">
-                                <i class="bi bi-cart-check"></i> Sales
+                                Sales
                             </a>
                             @if (isSalesMenuOpen)
                             {
                                 <ul class="submenu">
-                                    <li><NavLink href="/salesorder" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt"></i> Sales Order</NavLink></li>
-                                    <li><NavLink href="/salesinvoice" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-receipt-cutoff"></i> Sales Invoice</NavLink></li>
+                                    <li><NavLink href="/salesorder" @onclick="@(isMobile? ToggleMenu : null)">Sales Order</NavLink></li>
+                                    <li><NavLink href="/salesinvoice" @onclick="@(isMobile? ToggleMenu : null)">Sales Invoice</NavLink></li>
                                 </ul>
                             }
                         </li>
@@ -79,9 +79,9 @@
                 }
             </li>
 
-            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-bar-chart"></i> Reports</NavLink></li>
-            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-person"></i> Profile</NavLink></li>
-            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)"><i class="bi bi-box-arrow-right"></i> Logout</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)">Reports</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)">Profile</NavLink></li>
+            <li><NavLink href="#" @onclick="@(isMobile? ToggleMenu : null)">Logout</NavLink></li>
         </ul>
     </nav>
 
@@ -89,14 +89,21 @@
     <div class="main-content">
         <!-- Top Bar -->
         <header class="topbar">
-            <div class="welcome-text">
-                <h4>Welcome, <span class="username">User</span></h4>
-                <p>Here’s a summary of today’s operational status</p>
+            <div class="topbar-left">
+                <h4 class="welcome-text">Welcome, <span class="username">User</span></h4>
+                <p class="status-text">
+                    Here’s a summary of today’s operational status
+                     
+                </p>
             </div>
 
-            <div class="user-info">
-                <span class="role">Role: N/A</span><br />
-                <span class="company">Company: Kalpaka Organics</span>
+            <!-- RIGHT SIDE: User Info + Avatar (Avatar at FAR RIGHT) -->
+            <div class="topbar-right">
+                <div class="user-info-right">
+                    <div class="user-name">User</div>
+                    <div class="user-role">Role: Admin</div>
+                    <div class="user-company">Company: Kalpaka Organics</div>
+                </div>
                 <img src="images/user.png" class="user-avatar" alt="User Avatar" />
             </div>
         </header>
@@ -120,9 +127,7 @@
     {
         if (firstRender)
         {
-            // Initialize mobile detection via JS Interop
             isMobile = await JSRuntime.InvokeAsync<bool>("isMobileDevice");
-            // Set up resize listener
             await JSRuntime.InvokeVoidAsync("setupResizeListener", DotNetObjectReference.Create(this));
         }
     }
@@ -134,12 +139,7 @@
         StateHasChanged();
     }
 
-    private void ToggleMenu()
-    {
-        isMenuOpen = !isMenuOpen;
-        StateHasChanged();
-    }
-
+    private void ToggleMenu() { isMenuOpen = !isMenuOpen; StateHasChanged(); }
     private void ToggleMasterMenu() => isMasterMenuOpen = !isMasterMenuOpen;
     private void ToggleTransactionMenu() => isTransactionMenuOpen = !isTransactionMenuOpen;
     private void TogglePurchaseMenu() => isPurchaseMenuOpen = !isPurchaseMenuOpen;
@@ -147,11 +147,10 @@
 }
 
 <style>
-    /* Ensure body has no default background */
     body {
         margin: 0;
         padding: 0;
-        background-color: #f8f9fa; /* Set body background to match main content */
+        background-color: #f8f9fa;
     }
 
     .layout-container {
@@ -160,7 +159,6 @@
         overflow: hidden;
     }
 
-    /* Fixed Hamburger Icon */
     .fixed-hamburger {
         position: fixed;
         top: 15px;
@@ -171,72 +169,52 @@
         font-size: 30px;
         cursor: pointer;
         z-index: 1100;
-        background-color: #f8f9fa; /* Match main page background */
+        background-color: #f8f9fa;
+        padding: 5px;
+        border-radius: 4px;
     }
 
-    /* Sidebar */
     .sidebar {
         width: 250px;
         background: #1e3a8a;
         color: white;
-        transition: transform 0.3s ease;
         position: fixed;
         height: 100%;
         overflow-y: auto;
         transform: translateX(-100%);
         z-index: 1000;
+        transition: 0.3s;
     }
 
         .sidebar.open {
             transform: translateX(0);
         }
 
-        /* Prevent click events from bubbling up to main-content */
-        .sidebar, .sidebar * {
-            -webkit-tap-highlight-color: transparent; /* Prevent tap highlight on mobile */
-        }
-
-    /* Desktop adjustments */
     @@media (min-width: 769px) {
         .sidebar
 
     {
-        transform: translateX(0); 
-    }
-
-    .sidebar.open {
-        transform: translateX(0); /* No change needed, already visible */
+        transform: translateX(0);
     }
 
     .main-content {
-        margin-left: 250px;  
-        width: calc(100% - 250px); /* Ensure main content takes remaining space */
-        transition: margin-left 0.3s ease, width 0.3s ease;
+        margin-left: 250px;
+        width: calc(100% - 250px);
+        transition: 0.3s;
     }
-
-        .main-content.no-sidebar {
-            margin-left: 0;
-            width: 100%;
-        }
 
     }
 
-    /* Mobile adjustments */
     @@media (max-width: 768px) {
         .sidebar
 
     {
-        width: 70%; /* Reduced width to avoid covering half the screen */
-        transform: translateX(-100%); /* Hidden by default */
-    }
-
-    .sidebar.open {
-        transform: translateX(0); /* Slide in when open */
+        width: 70%;
     }
 
     .main-content {
-        margin-left: 0; /* No sidebar margin on mobile */
-        width: 100%; /* Full width */
+        margin-left: 0;
+        width: 100%;
     }
 
     }
@@ -290,19 +268,17 @@
             text-decoration: none;
         }
 
-    /* Main Content */
     .main-content {
         flex: 1;
         overflow-y: auto;
-        background-color: #f8f9fa;
-        transition: margin-left 0.3s ease, width 0.3s ease;
+        background-color: #f0f4f8;
     }
 
-    /* Topbar */
+    /* TOP BAR */
     .topbar {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         padding: 15px 20px;
         background: #f8f9fa;
         border-bottom: 1px solid #dee2e6;
@@ -311,68 +287,100 @@
         z-index: 900;
     }
 
-    .welcome-text h4 {
+    .topbar-left {
+        flex: 1;
+    }
+
+    .welcome-text {
         margin: 0;
         font-size: 18px;
         color: #1e3a8a;
-        text-align: center;
+        font-weight: 600;
     }
 
-    .welcome-text p {
-        margin: 0;
+    .status-text {
+        margin: 4px 0 0;
         font-size: 13px;
         color: #555;
-        text-align: center;
     }
 
-    .user-info {
+    /* RIGHT SIDE: Info + Avatar (Avatar at FAR RIGHT) */
+    .topbar-right {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        min-width: 220px; /* Ensures space */
+    }
+
+    .user-info-right {
+        text-align: right;
+        line-height: 1.4;
+        flex-shrink: 0;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 15px;
+        color: #000;
+    }
+
+    .user-role, .user-company {
+        font-size: 13px;
+        color: #333;
     }
 
     .user-avatar {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
+        border: 2px solid #1e3a8a;
+        object-fit: cover;
+        flex-shrink: 0;
+        margin-left: auto; /* Pushes avatar to the FAR RIGHT */
     }
 
-    .page-shell {
-        padding: 20px;
-    }
-
-    /* Mobile View */
+    /* MOBILE */
     @@media (max-width: 768px) {
         .topbar
 
     {
         flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        text-align: center;
+        align-items: flex-start;
+        text-align: left;
+        gap: 12px;
+        padding: 15px;
     }
 
-    .welcome-text h4 {
+    .topbar-right {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .user-info-right {
+        text-align: right;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        margin-left: auto;
+    }
+
+    .welcome-text {
         font-size: 16px;
     }
 
-    .welcome-text p {
+    .status-text {
         font-size: 12px;
     }
 
-    .user-info {
-        flex-direction: row;
-        justify-content: center;
-        font-size: 12px;
+    .user-name {
+        font-size: 14px;
     }
 
-        .user-info .company {
-            display: none; /* Hide company info on mobile to save space */
-        }
-
-    .user-avatar {
-        width: 35px;
-        height: 35px;
+    .user-role, .user-company {
+        font-size: 12px;
     }
 
     }
@@ -410,7 +418,6 @@
             dotNetObject.invokeMethodAsync('UpdateMobileState', isMobile);
         };
         window.addEventListener('resize', handleResize);
-        // Initial call to set the state
         handleResize();
     };
 </script>

@@ -40,18 +40,40 @@
                 }
 
                 <div class="grid-four">
+                    <!-- CUSTOMER ID -->
                     <div class="form-item">
                         <label class="form-label">Customer ID</label>
-                        <InputText class="form-control" @bind-Value="customerModel.Code" />
+                        <InputText class="form-control" @bind-Value="customerModel.Code" readonly />
+                        @if (editingCustomer == null)
+                        {
+                            <small class="text-muted">Auto-generated (e.g., CUST001)</small>
+                        }
                     </div>
+
                     <div class="form-item">
-                        <label class="form-label">Customer Name</label>
+                        <label class="form-label">Customer Name <span class="text-danger">*</span></label>
                         <InputText class="form-control" @bind-Value="customerModel.Name" />
                     </div>
+
+                    <!-- PHONE: MAX 12 DIGITS + VALIDATION -->
                     <div class="form-item">
                         <label class="form-label">Phone</label>
-                        <InputText class="form-control" @bind-Value="customerModel.Phone" />
+                        <div class="@(phoneError ? "input-group-error" : "")">
+                            <InputText @bind-Value="customerModel.Phone"
+                                       type="tel"
+                                       maxlength="12"
+                                       placeholder="e.g., 919876543210"
+                                       @oninput="OnPhoneInput"
+                                       class="form-control" />
+                        </div>
+                        @if (phoneError)
+                        {
+                            <div class="invalid-feedback">
+                                Phone must be 12 digits or less and contain only numbers.
+                            </div>
+                        }
                     </div>
+
                     <div class="form-item">
                         <label class="form-label">GSTIN</label>
                         <InputText class="form-control" @bind-Value="customerModel.Gstin" />
@@ -114,6 +136,7 @@
     private bool isFormVisible = false;
     private string searchText = string.Empty;
     private string errorMessage = "";
+    private bool phoneError = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,6 +164,8 @@
     {
         editingCustomer = null;
         customerModel = new Customer();
+        customerModel.Code = GenerateNextCustomerId();
+        phoneError = false;
         isFormVisible = true;
         errorMessage = "";
     }
@@ -149,20 +174,44 @@
     {
         isFormVisible = false;
         editingCustomer = null;
+        phoneError = false;
         errorMessage = "";
+    }
+
+    private void OnPhoneInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "";
+        customerModel.Phone = value;
+
+        phoneError = !string.IsNullOrEmpty(value) &&
+                     (value.Length > 12 || !value.All(char.IsDigit));
+
+        StateHasChanged();
     }
 
     private async Task SaveCustomer()
     {
+        if (!string.IsNullOrEmpty(customerModel.Phone) &&
+            (customerModel.Phone.Length > 12 || !customerModel.Phone.All(char.IsDigit)))
+        {
+            errorMessage = "Phone must be 12 digits or less and contain only numbers.";
+            return;
+        }
+
         try
         {
             using var db = DbFactory.CreateDbContext();
 
             if (editingCustomer == null)
             {
+                if (string.IsNullOrEmpty(customerModel.Code))
+                {
+                    customerModel.Code = GenerateNextCustomerId(db);
+                }
+
                 if (await db.Customers.AnyAsync(c => c.Code == customerModel.Code))
                 {
-                    errorMessage = "Customer ID (Code) must be unique.";
+                    errorMessage = "Customer ID already exists.";
                     return;
                 }
 
@@ -173,7 +222,6 @@
                 var existing = await db.Customers.FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
                 if (existing != null)
                 {
-                    existing.Code = customerModel.Code;
                     existing.Name = customerModel.Name;
                     existing.Phone = customerModel.Phone;
                     existing.Gstin = customerModel.Gstin;
@@ -185,6 +233,7 @@
             await LoadCustomers();
             isFormVisible = false;
             errorMessage = "";
+            phoneError = false;
         }
         catch (Exception ex)
         {
@@ -203,6 +252,7 @@
             Phone = customer.Phone,
             Gstin = customer.Gstin
         };
+        phoneError = false;
         isFormVisible = true;
         errorMessage = "";
     }
@@ -242,8 +292,33 @@
                 (c.Gstin ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .ToList();
     }
-}
 
+    private string GenerateNextCustomerId(AppDbContext? db = null)
+    {
+        bool disposeDb = db == null;
+        db ??= DbFactory.CreateDbContext();
+
+        try
+        {
+            var lastCustomer = db.Customers
+                .Where(c => c.Code.StartsWith("CUST"))
+                .OrderByDescending(c => c.Code)
+                .FirstOrDefault();
+
+            if (lastCustomer == null || string.IsNullOrEmpty(lastCustomer.Code))
+            {
+                return "CUST001";
+            }
+
+            var lastNumber = int.Parse(lastCustomer.Code.Replace("CUST", ""));
+            return $"CUST{(lastNumber + 1):D3}";
+        }
+        finally
+        {
+            if (disposeDb) db.Dispose();
+        }
+    }
+}
 
 <style>
     .main-card {
@@ -336,6 +411,12 @@
         flex-direction: column;
     }
 
+        .form-item input[readonly] {
+            background-color: #f0f0f0;
+            color: #555;
+            cursor: not-allowed;
+        }
+
     .form-actions {
         margin-top: 16px;
         text-align: right;
@@ -356,14 +437,6 @@
             border-bottom: 1px solid #ddd;
         }
 
-    .pagination-info {
-        margin-top: 10px;
-        text-align: right;
-        padding: 10px;
-        color: #1d3557;
-        font-size: 14px;
-    }
-
     .alert {
         padding: 10px;
         margin-bottom: 10px;
@@ -379,134 +452,42 @@
         color: #721c24;
     }
 
-    /* Responsive Adjustments */
-    @@media (max-width: 768px) {
-        /* Mobile View */
-        .page-title {
-            font-size: 20px;
-        }
+    /* PHONE ERROR STYLES */
+    .input-group-error .form-control {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
 
-        .subtitle {
-            font-size: 14px;
+    .invalid-feedback {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+
+    /* RESPONSIVE */
+    @@media (max-width: 768px) {
+        .grid-four {
+            grid-template-columns: 1fr;
         }
 
         .action-container {
             justify-content: center;
         }
 
-        .search-bar .form-control {
-            width: 100%;
-            max-width: 200px;
-        }
-
-        .form-header {
-            flex-direction: column;
-            gap: 10px;
-            text-align: center;
-        }
-
-        .grid-four {
-            grid-template-columns: 1fr;
-        }
-
         .form-actions {
             text-align: center;
         }
 
-        .customer-table-box table {
+        .table-custom {
             display: block;
             overflow-x: auto;
-        }
-
-        .table-custom th, .table-custom td {
-            min-width: 100px;
-            padding: 8px;
-            font-size: 14px;
-        }
-
-        .table-custom th {
-            white-space: nowrap;
-        }
-
-        .pagination-info {
-            text-align: center;
-        }
-
-        .btn-primary, .btn-warning, .btn-danger {
-            width: 100%;
-            margin-bottom: 5px;
         }
     }
 
     @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .page-title {
-            font-size: 22px;
-        }
-
-        .subtitle {
-            font-size: 15px;
-        }
-
-        .action-container {
-            justify-content: flex-end;
-        }
-
-        .search-bar .form-control {
-            width: 180px;
-        }
-
         .grid-four {
             grid-template-columns: repeat(2, 1fr);
-        }
-
-        .form-actions {
-            text-align: right;
-        }
-
-        .table-custom th, .table-custom td {
-            padding: 8px;
-            font-size: 14px;
-        }
-
-        .pagination-info {
-            text-align: right;
-        }
-    }
-
-    @@media (min-width: 1025px) {
-        /* Desktop View */
-        .page-title {
-            font-size: 24px;
-        }
-
-        .subtitle {
-            font-size: 16px;
-        }
-
-        .action-container {
-            justify-content: flex-end;
-        }
-
-        .search-bar .form-control {
-            width: 200px;
-        }
-
-        .grid-four {
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .form-actions {
-            text-align: right;
-        }
-
-        .table-custom th, .table-custom td {
-            padding: 10px;
-            font-size: 16px;
-        }
-
-        .pagination-info {
-            text-align: right;
         }
     }
 </style>
