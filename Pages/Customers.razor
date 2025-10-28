@@ -2,6 +2,7 @@
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Data
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -46,13 +47,14 @@
                         <InputText class="form-control" @bind-Value="customerModel.Code" readonly />
                         @if (editingCustomer == null)
                         {
-                            <small class="text-muted">Auto-generated (e.g., CUST001)</small>
+                            <small class="text-muted">Assigned automatically (e.g., CUST001)</small>
                         }
                     </div>
 
                     <div class="form-item">
                         <label class="form-label">Customer Name <span class="text-danger">*</span></label>
-                        <InputText class="form-control" @bind-Value="customerModel.Name" />
+                        <InputText class="form-control" @bind-Value="customerModel.Name" required />
+                        <ValidationMessage For="@(() => customerModel.Name)" />
                     </div>
 
                     <!-- PHONE: MAX 12 DIGITS + VALIDATION -->
@@ -72,22 +74,26 @@
                                 Phone must be 12 digits or less and contain only numbers.
                             </div>
                         }
-                    </div>
-
-                    <div class="form-item">
-                        <label class="form-label">GSTIN</label>
-                        <InputText class="form-control" @bind-Value="customerModel.Gstin" />
-                    </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-success">
-                        @(editingCustomer == null ? "Save Customer" : "Update Customer")
-                    </button>
+                <div class="form-item">
+                    <label class="form-label">GSTIN</label>
+                    <InputText class="form-control" @bind-Value="customerModel.Gstin" />
                 </div>
-            </EditForm>
-        </div>
-    }
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success" disabled="@isSaving">
+                    @(
+                                        isSaving
+                                        ? (editingCustomer == null ? "Saving..." : "Updating...")
+                                        : (editingCustomer == null ? "Save Customer" : "Update Customer")
+                                        )
+                </button>
+            </div>
+        </EditForm>
+    </div>
+        }
     else
     {
         <div class="customer-table-box">
@@ -117,7 +123,7 @@
                                 <td>@customer.Gstin</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="() => EditCustomer(customer)">Edit</button>
-                                    <button class="btn btn-danger btn-sm" @onclick="async () => DeleteCustomer(customer)">Delete</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteCustomer(customer)">Delete</button>
                                 </td>
                             </tr>
                         }
@@ -137,6 +143,7 @@
     private string searchText = string.Empty;
     private string errorMessage = "";
     private bool phoneError = false;
+    private bool isSaving = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,11 +167,22 @@
         }
     }
 
-    private void ShowAddForm()
+    // Fill a UI candidate for Code (non-atomic — real allocation is done via sequence on Save)
+    private async Task ShowAddForm()
     {
         editingCustomer = null;
         customerModel = new Customer();
-        customerModel.Code = GenerateNextCustomerId();
+
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            customerModel.Code = await GetNextCustomerCodeCandidateAsync(db);
+        }
+        catch
+        {
+            customerModel.Code = "CUST001";
+        }
+
         phoneError = false;
         isFormVisible = true;
         errorMessage = "";
@@ -176,6 +194,7 @@
         editingCustomer = null;
         phoneError = false;
         errorMessage = "";
+        isSaving = false;
     }
 
     private void OnPhoneInput(ChangeEventArgs e)
@@ -189,8 +208,32 @@
         StateHasChanged();
     }
 
+    // Helper (UI candidate): scans existing codes to propose next — not used for actual insertion.
+    private async Task<string> GetNextCustomerCodeCandidateAsync(AppDbContext db)
+    {
+        var codes = await db.Customers
+            .Where(c => c.Code != null && c.Code.StartsWith("CUST"))
+            .Select(c => c.Code!)
+            .ToListAsync();
+
+        int maxNum = 0;
+        foreach (var code in codes)
+        {
+            if (code.Length <= 4) continue;
+            var numericPart = code.Substring(4); // after "CUST"
+            if (int.TryParse(numericPart, out int n))
+            {
+                if (n > maxNum) maxNum = n;
+            }
+        }
+
+        return $"CUST{(maxNum + 1):D3}";
+    }
+
+    // MAIN SAVE: uses DB sequence (dbo.CustomerCodeSeq) to fetch unique number atomically with retry.
     private async Task SaveCustomer()
     {
+        // CLIENT-SIDE PHONE VALIDATION
         if (!string.IsNullOrEmpty(customerModel.Phone) &&
             (customerModel.Phone.Length > 12 || !customerModel.Phone.All(char.IsDigit)))
         {
@@ -198,46 +241,134 @@
             return;
         }
 
+        isSaving = true;
+        errorMessage = "";
+
         try
         {
-            using var db = DbFactory.CreateDbContext();
-
-            if (editingCustomer == null)
+            // If editing -> simple update (no Code change)
+            if (editingCustomer != null)
             {
-                if (string.IsNullOrEmpty(customerModel.Code))
-                {
-                    customerModel.Code = GenerateNextCustomerId(db);
-                }
-
-                if (await db.Customers.AnyAsync(c => c.Code == customerModel.Code))
-                {
-                    errorMessage = "Customer ID already exists.";
-                    return;
-                }
-
-                db.Customers.Add(customerModel);
-            }
-            else
-            {
+                using var db = DbFactory.CreateDbContext();
                 var existing = await db.Customers.FirstOrDefaultAsync(c => c.Id == editingCustomer.Id);
                 if (existing != null)
                 {
                     existing.Name = customerModel.Name;
                     existing.Phone = customerModel.Phone;
                     existing.Gstin = customerModel.Gstin;
+                    existing.Address = customerModel.Address;
+                    existing.Email = customerModel.Email;
                     db.Customers.Update(existing);
+                    await db.SaveChangesAsync();
+                }
+
+                await LoadCustomers();
+                isFormVisible = false;
+                return;
+            }
+
+            // NEW CUSTOMER: retry loop using DB sequence to avoid collisions
+            const int maxRetries = 3;
+            int attempt = 0;
+            bool saved = false;
+
+            while (!saved && attempt < maxRetries)
+            {
+                attempt++;
+                try
+                {
+                    using var db = DbFactory.CreateDbContext();
+                    var conn = db.Database.GetDbConnection();
+                    if (conn.State != System.Data.ConnectionState.Open)
+                        await conn.OpenAsync();
+
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT NEXT VALUE FOR dbo.CustomerCodeSeq;";
+                    cmd.CommandType = System.Data.CommandType.Text;
+
+                    var scalar = await cmd.ExecuteScalarAsync();
+                    if (scalar == null)
+                        throw new Exception("Failed to obtain next sequence value for CustomerCodeSeq.");
+
+                    long seqVal;
+                    if (scalar is int si) seqVal = si;
+                    else if (scalar is long sl) seqVal = sl;
+                    else if (long.TryParse(scalar.ToString(), out var p)) seqVal = p;
+                    else throw new Exception("Unexpected sequence result type: " + scalar.GetType());
+
+                    var nextCode = $"CUST{seqVal:D3}";
+
+                    var newCustomer = new Customer
+                    {
+                        Code = nextCode,
+                        Name = customerModel.Name?.Trim(),
+                        Phone = customerModel.Phone,
+                        Gstin = customerModel.Gstin,
+                        Address = customerModel.Address,
+                        Email = customerModel.Email,
+                        IsDeleted = false
+                    };
+
+                    db.Customers.Add(newCustomer);
+                    await db.SaveChangesAsync();
+
+                    // reflect saved customer in UI model
+                    customerModel = new Customer
+                    {
+                        Id = newCustomer.Id,
+                        Code = newCustomer.Code,
+                        Name = newCustomer.Name,
+                        Phone = newCustomer.Phone,
+                        Gstin = newCustomer.Gstin,
+                        Address = newCustomer.Address,
+                        Email = newCustomer.Email
+                    };
+
+                    saved = true;
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    // If unique key on Code, retry (get next sequence value)
+                    if (dbEx.InnerException != null &&
+                        (dbEx.InnerException.Message.Contains("IX_Customers_Code") ||
+                         dbEx.InnerException.Message.Contains("duplicate key") ||
+                         dbEx.InnerException.Message.Contains("Violation of UNIQUE KEY")))
+                    {
+                        // small wait then retry to consume next sequence value
+                        await Task.Delay(100);
+                        continue;
+                    }
+                    // other DB update error -> rethrow to outer catch
+                    throw;
                 }
             }
 
-            await db.SaveChangesAsync();
+            if (!saved)
+            {
+                errorMessage = "Failed to save customer after multiple attempts. Please try again.";
+                return;
+            }
+
+            // success - reload list and close form
             await LoadCustomers();
             isFormVisible = false;
-            errorMessage = "";
             phoneError = false;
+        }
+        catch (DbUpdateException dbEx)
+        {
+            Console.WriteLine($"SAVE ERROR (DbUpdate): {dbEx}");
+            errorMessage = "Failed to save customer due to database constraint. Please try again.";
+            if (dbEx.InnerException != null) errorMessage += $"\nDetails: {dbEx.InnerException.Message}";
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"SAVE ERROR: {ex}");
             errorMessage = $"Error saving customer: {ex.Message}";
+            if (ex.InnerException != null) errorMessage += $"\nDetails: {ex.InnerException.Message}";
+        }
+        finally
+        {
+            isSaving = false;
         }
     }
 
@@ -250,7 +381,9 @@
             Code = customer.Code,
             Name = customer.Name,
             Phone = customer.Phone,
-            Gstin = customer.Gstin
+            Gstin = customer.Gstin,
+            Address = customer.Address,
+            Email = customer.Email
         };
         phoneError = false;
         isFormVisible = true;
@@ -287,36 +420,10 @@
         filteredCustomers = customers
             .Where(c =>
                 c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                c.Code.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                (c.Code ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 (c.Phone ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 (c.Gstin ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .ToList();
-    }
-
-    private string GenerateNextCustomerId(AppDbContext? db = null)
-    {
-        bool disposeDb = db == null;
-        db ??= DbFactory.CreateDbContext();
-
-        try
-        {
-            var lastCustomer = db.Customers
-                .Where(c => c.Code.StartsWith("CUST"))
-                .OrderByDescending(c => c.Code)
-                .FirstOrDefault();
-
-            if (lastCustomer == null || string.IsNullOrEmpty(lastCustomer.Code))
-            {
-                return "CUST001";
-            }
-
-            var lastNumber = int.Parse(lastCustomer.Code.Replace("CUST", ""));
-            return $"CUST{(lastNumber + 1):D3}";
-        }
-        finally
-        {
-            if (disposeDb) db.Dispose();
-        }
     }
 }
 
@@ -437,6 +544,12 @@
             border-bottom: 1px solid #ddd;
         }
 
+        .table-custom thead th {
+            background-color: #1e3a8a !important;
+            color: white !important;
+            font-weight: bold !important;
+        }
+
     .alert {
         padding: 10px;
         margin-bottom: 10px;
@@ -452,7 +565,6 @@
         color: #721c24;
     }
 
-    /* PHONE ERROR STYLES */
     .input-group-error .form-control {
         border-color: #dc3545 !important;
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
@@ -465,7 +577,6 @@
         display: block;
     }
 
-    /* RESPONSIVE */
     @@media (max-width: 768px) {
         .grid-four {
             grid-template-columns: 1fr;

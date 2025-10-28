@@ -1,9 +1,9 @@
 ﻿@page "/purchaseorder"
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
-@using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
 
 <div class="main-card">
@@ -42,14 +42,28 @@
                         }
 
                         <div class="grid-two">
+                            <!-- PO ID: AUTO-GENERATED & READ-ONLY -->
                             <div class="form-item">
                                 <label class="form-label">PO ID</label>
-                                <InputText class="form-control" @bind-Value="purchaseOrderModel.POId" />
+                                <InputText class="form-control" @bind-Value="purchaseOrderModel.POId" readonly />
+                                @if (editingPurchaseOrder == null)
+                                {
+                                    <small class="text-muted">Auto-generated (e.g., PO001)</small>
+                                }
                             </div>
+
+                            <!-- SUPPLIER DROPDOWN -->
                             <div class="form-item">
-                                <label class="form-label">Supplier</label>
-                                <InputText class="form-control" @bind-Value="purchaseOrderModel.SupplierName" />
+                                <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control" @bind-Value="purchaseOrderModel.SupplierName">
+                                    <option value="">-- Select Supplier --</option>
+                                    @foreach (var supplier in suppliers)
+                                    {
+                                        <option value="@supplier.Name">@supplier.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
+
                             <div class="form-item">
                                 <label class="form-label">Order Date</label>
                                 <InputDate class="form-control" @bind-Value="purchaseOrderModel.OrderDate" />
@@ -65,7 +79,7 @@
                                 <label class="form-label">Status</label>
                                 <InputSelect class="form-control" @bind-Value="purchaseOrderModel.Status">
                                     <option value="">Select Status</option>
-                                    <option>Pending</option>
+                                    <option>*Pending*</option>
                                     <option>Completed</option>
                                     <option>Cancelled</option>
                                 </InputSelect>
@@ -80,30 +94,42 @@
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Category</label>
-                                <InputText class="form-control" @bind-Value="newItem.Category" />
+                                <InputSelect class="form-control" @bind-Value="selectedCategoryId" @onchange="OnCategorySelected">
+                                    <option value="">-- Select Category --</option>
+                                    @foreach (var group in productGroups)
+                                    {
+                                        <option value="@group.Id">@group.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Product</label>
-                                <InputText class="form-control" @bind-Value="newItem.ProductName" />
+                                <InputSelect class="form-control" @bind-Value="selectedProductId" @onchange="OnProductSelected">
+                                    <option value="">-- Select Product --</option>
+                                    @foreach (var prod in products)
+                                    {
+                                        <option value="@prod.Id">@prod.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Quantity</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" @oninput="UpdateLineTotal" />
                             </div>
                         </div>
 
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Rate</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Rate" />
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" @oninput="UpdateLineTotal" />
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Disc %</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" />
+                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" @oninput="UpdateLineTotal" />
                             </div>
                             <div class="form-item">
                                 <label class="form-label">GST %</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
+                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" @oninput="UpdateLineTotal" />
                             </div>
                         </div>
 
@@ -127,43 +153,53 @@
                             </div>
                         </div>
 
-                        <div class="form-actions full-width">
+                        <!-- ADD ITEM BUTTON — RIGHT ALIGNED -->
+                        <div class="form-actions full-width" style="text-align: right;">
                             <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
                         </div>
 
                         <div class="items-table">
                             <table class="table table-custom">
                                 <thead>
-                                    <tr style="background-color: #1e3a8a; color: white;">
-                                        <th>PRODUCT ID</th>
-                                        <th>PRODUCT NAME</th>
-                                        <th>QUANTITY</th>
-                                        <th>RATE</th>
-                                        <th>DISC %</th>
-                                        <th>GST %</th>
-                                        <th>LINE TOTAL</th>
-                                        <th>TAX MODE</th>
-                                        <th>ACTIONS</th>
+                                    <tr style="background-color: #1e3a8a !important; color: white !important; font-weight: bold;">
+                                        <th style="color: white !important;">ITEM CODE</th>
+                                        <th style="color: white !important;">PRODUCT NAME</th>
+                                        <th style="color: white !important;">QUANTITY</th>
+                                        <th style="color: white !important;">RATE</th>
+                                        <th style="color: white !important;">DISC %</th>
+                                        <th style="color: white !important;">GST %</th>
+                                        <th style="color: white !important;">LINE TOTAL</th>
+                                        <th style="color: white !important;">TAX MODE</th>
+                                        <th style="color: white !important;">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in purchaseOrderModel.Items)
+                                    @if (purchaseOrderModel.Items == null || purchaseOrderModel.Items.Count == 0)
                                     {
-                                        <tr>
-                                            <td>@item.ProductId</td>
-                                            <td>@item.ProductName</td>
-                                            <td>@item.Quantity</td>
-                                            <td>@(item.Rate.HasValue? item.Rate.Value.ToString("C") : "N/A")</td>
-                                            <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
-                                            <td>@item.TaxMode</td>
-                                            <td>
-                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)">
-                                                    <i class="oi oi-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
+                                        <tr><td colspan="9" class="text-center">No items added.</td></tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var item in purchaseOrderModel.Items)
+                                        {
+                                            <tr>
+                                                <td>@item.ProductId</td>
+                                                <td>@item.ProductName</td>
+                                                <td>@item.Quantity</td>
+                                                <td>@(item.Rate.HasValue? item.Rate.Value.ToString("N2") : "N/A")</td>
+                                                <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
+                                                <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
+                                                <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</td>
+                                                <td>@item.TaxMode</td>
+                                                <td>
+                                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                                        <button class="btn btn-danger-light btn-sm" @onclick="() => RemoveItem(item)">
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
                                     }
                                 </tbody>
                             </table>
@@ -172,9 +208,12 @@
                         <div class="summary">
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
-                                <InputNumber class="form-control" @bind-Value="purchaseOrderModel.TotalAmount" readonly />
+                                <div class="form-control" style="font-weight: bold; background: #f8f9fa;">
+                                    ₹@(purchaseOrderModel.TotalAmount?.ToString("N2") ?? "0.00")
+                                </div>
                             </div>
-                            <div class="form-actions">
+                            <!-- SAVE PURCHASE ORDER BUTTON — RIGHT ALIGNED -->
+                            <div class="form-actions" style="text-align: right; margin-top: 15px;">
                                 <button type="submit" class="btn btn-primary">
                                     Save Purchase Order
                                 </button>
@@ -191,14 +230,14 @@
         <div class="product-table-box">
             <table class="table table-custom">
                 <thead>
-                    <tr style="background-color: #1e3a8a; color: white;">
-                        <th>PO ID</th>
-                        <th>SUPPLIER NAME</th>
-                        <th>ORDER DATE</th>
-                        <th>EXPECTED DELIVERY</th>
-                        <th>TOTAL AMOUNT</th>
-                        <th>STATUS</th>
-                        <th style="width:180px;">ACTIONS</th>
+                    <tr style="background-color: #1e3a8a !important; color: white !important; font-weight: bold;">
+                        <th style="color: white !important;">PO ID</th>
+                        <th style="color: white !important;">SUPPLIER NAME</th>
+                        <th style="color: white !important;">ORDER DATE</th>
+                        <th style="color: white !important;">EXPECTED DELIVERY</th>
+                        <th style="color: white !important;">TOTAL AMOUNT</th>
+                        <th style="color: white !important;">STATUS</th>
+                        <th style="width:180px; color: white !important;">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -215,14 +254,20 @@
                                 <td>@po.SupplierName</td>
                                 <td>@(po.OrderDate.HasValue? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(po.ExpectedDelivery.HasValue? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("C") : "N/A")</td>
+                                <td>@(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("N2") : "N/A")</td>
                                 <td>@po.Status</td>
                                 <td>
-                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditPurchaseOrder(po)"><i class="oi oi-pencil"></i></button>
-                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeletePurchaseOrder(po)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseOrder(po.Id)">
-                                        <i class="oi oi-print"></i>
-                                    </button>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <button class="btn btn-warning-light btn-sm" @onclick="() => EditPurchaseOrder(po)">
+                                            Edit
+                                        </button>
+                                        <button class="btn btn-danger-light btn-sm" @onclick="() => DeletePurchaseOrder(po)">
+                                            Delete
+                                        </button>
+                                        <button class="btn btn-info-light btn-sm" @onclick="() => PrintPurchaseOrder(po.Id)">
+                                            Print
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -245,9 +290,17 @@
     private string? errorMessage;
     private MyBlazorServerApp.Models.PurchaseOrderItem newItem = new();
 
+    private List<MyBlazorServerApp.Models.Supplier> suppliers = new();
+    private List<MyBlazorServerApp.Models.Product> products = new();
+    private List<ProductGroup> productGroups = new();
+    private int? selectedProductId;
+    private int? selectedCategoryId;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadPurchaseOrders();
+        await LoadSuppliers();
+        await LoadProducts();
         ApplyFilter();
     }
 
@@ -266,13 +319,62 @@
         }
     }
 
-    private void ShowAddForm()
+    private async Task LoadSuppliers()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            suppliers = await db.Suppliers
+                .Where(s => s.Status == "Active")
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading suppliers: {ex.Message}";
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            products = await db.Products
+                .Include(p => p.ProductGroup)
+                .ToListAsync();
+
+            productGroups = products
+                .Where(p => p.ProductGroup != null)
+                .Select(p => p.ProductGroup!)
+                .DistinctBy(g => g.Id)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading products: {ex.Message}";
+        }
+    }
+
+    private async void ShowAddForm()
     {
         editingPurchaseOrder = null;
-        purchaseOrderModel = new MyBlazorServerApp.Models.PurchaseOrder { Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>() };
+        purchaseOrderModel = new MyBlazorServerApp.Models.PurchaseOrder
+        {
+            Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>(),
+            OrderDate = DateTime.Today,
+            Status = "Pending"
+        };
         newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
+        selectedProductId = null;
+        selectedCategoryId = null;
+
+        using var db = DbFactory.CreateDbContext();
+        purchaseOrderModel.POId = await GenerateNextPOId(db);
+
         isFormVisible = true;
         errorMessage = null;
+        StateHasChanged();
     }
 
     private void BackToList()
@@ -290,6 +392,9 @@
 
             if (editingPurchaseOrder == null)
             {
+                if (string.IsNullOrEmpty(purchaseOrderModel.POId))
+                    purchaseOrderModel.POId = await GenerateNextPOId(db);
+
                 foreach (var item in purchaseOrderModel.Items)
                     item.PurchaseOrder = purchaseOrderModel;
 
@@ -319,11 +424,11 @@
                             ProductName = i.ProductName,
                             Category = i.Category,
                             Quantity = i.Quantity,
-                            Rate = i.Rate,
-                            DiscountPercent = i.DiscountPercent,
-                            GSTPercent = i.GSTPercent,
+                            Rate = Math.Round(i.Rate ?? 0, 2),
+                            DiscountPercent = Math.Round(i.DiscountPercent ?? 0, 2),
+                            GSTPercent = Math.Round(i.GSTPercent ?? 0, 2),
                             TaxMode = i.TaxMode,
-                            LineTotal = i.LineTotal,
+                            LineTotal = Math.Round(i.LineTotal ?? 0, 2),
                             PurchaseOrderId = existingPO.Id
                         }).ToList();
                 }
@@ -338,7 +443,7 @@
         {
             var inner = ex.InnerException?.Message ?? "No inner exception details.";
             errorMessage = $"Error saving purchase order: {ex.Message}\nInner: {inner}";
-            Console.WriteLine($"❌ {errorMessage}");
+            Console.WriteLine($"Error: {errorMessage}");
             await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
@@ -359,6 +464,8 @@
             Items = po.Items?.ToList() ?? new()
         };
         newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
+        selectedProductId = null;
+        selectedCategoryId = null;
         isFormVisible = true;
         errorMessage = null;
     }
@@ -380,8 +487,8 @@
         catch (Exception ex)
         {
             var inner = ex.InnerException?.Message ?? "(no inner exception)";
-            errorMessage = $"Error saving purchase order: {ex.Message}\nInner: {inner}";
-            Console.WriteLine($"❌ {errorMessage}");
+            errorMessage = $"Error deleting purchase order: {ex.Message}\nInner: {inner}";
+            Console.WriteLine($"Error: {errorMessage}");
             await JSRuntime.InvokeVoidAsync("alert", errorMessage);
         }
     }
@@ -409,27 +516,117 @@
         ApplyFilter();
     }
 
+    private async Task OnCategorySelected(ChangeEventArgs e)
+    {
+        selectedCategoryId = int.TryParse(e.Value?.ToString(), out int id) ? id : null;
+        var group = productGroups.FirstOrDefault(g => g.Id == selectedCategoryId);
+        newItem.Category = group?.Name ?? "";
+
+        await LoadProducts();
+
+        if (selectedCategoryId.HasValue)
+        {
+            products = products.Where(p => p.CategoryId == selectedCategoryId.Value).ToList();
+        }
+
+        if (selectedProductId.HasValue && !products.Any(p => p.Id == selectedProductId.Value))
+        {
+            selectedProductId = null;
+            newItem.ProductName = "";
+            newItem.Rate = 0;
+            newItem.GSTPercent = null;
+        }
+
+        UpdateLineTotal();
+        StateHasChanged();
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        selectedProductId = int.TryParse(e.Value?.ToString(), out int id) ? id : null;
+        var product = products.FirstOrDefault(p => p.Id == selectedProductId);
+
+        if (product != null)
+        {
+            newItem.ProductName = product.Name ?? "";
+            newItem.Category = product.ProductGroup?.Name ?? "N/A";
+
+            if (newItem.Rate == 0 || newItem.Rate == null)
+                newItem.Rate = product.NextPurchaseRate;
+
+            if (newItem.GSTPercent == null)
+                newItem.GSTPercent = product.GstPercentage;
+
+            newItem.TaxMode = "Line Exclusive";
+        }
+        else
+        {
+            newItem.ProductName = "";
+            newItem.Category = "";
+            newItem.Rate = 0;
+            newItem.GSTPercent = null;
+            newItem.TaxMode = "Line Exclusive";
+        }
+
+        UpdateLineTotal();
+    }
+
     private void AddItem()
     {
+        if (!selectedProductId.HasValue)
+        {
+            errorMessage = "Please select a product.";
+            return;
+        }
+
+        var product = products.FirstOrDefault(p => p.Id == selectedProductId.Value);
+        if (product == null)
+        {
+            errorMessage = "Selected product not found.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(newItem.ProductName))
+        {
+            newItem.ProductName = product.Name ?? "";
+            newItem.Category = product.ProductGroup?.Name ?? "";
+            if (newItem.Rate == 0 || newItem.Rate == null)
+                newItem.Rate = product.NextPurchaseRate;
+            if (newItem.GSTPercent == null)
+                newItem.GSTPercent = product.GstPercentage;
+            newItem.TaxMode ??= "Line Exclusive";
+        }
+
         if (purchaseOrderModel.Items == null)
             purchaseOrderModel.Items = new List<MyBlazorServerApp.Models.PurchaseOrderItem>();
 
         newItem.LineTotal = CalculateLineTotal(newItem);
+
+        // ONLY CHANGE: NO -01, -02 → JUST PO ID
+        string itemCode = purchaseOrderModel.POId;
+
         purchaseOrderModel.Items.Add(new MyBlazorServerApp.Models.PurchaseOrderItem
         {
-            ProductId = Guid.NewGuid().ToString(),
+            ProductId = itemCode,
             ProductName = newItem.ProductName,
             Category = newItem.Category,
             Quantity = newItem.Quantity ?? 0,
-            Rate = newItem.Rate ?? 0,
-            DiscountPercent = newItem.DiscountPercent ?? 0,
-            GSTPercent = newItem.GSTPercent ?? 0,
+            Rate = Math.Round(newItem.Rate ?? 0, 2),
+            DiscountPercent = Math.Round(newItem.DiscountPercent ?? 0, 2),
+            GSTPercent = Math.Round(newItem.GSTPercent ?? 0, 2),
             TaxMode = newItem.TaxMode,
-            LineTotal = newItem.LineTotal
+            LineTotal = Math.Round(newItem.LineTotal ?? 0, 2)
         });
 
-        newItem = new MyBlazorServerApp.Models.PurchaseOrderItem();
+        newItem = new MyBlazorServerApp.Models.PurchaseOrderItem
+        {
+            TaxMode = "Line Exclusive"
+        };
+
+        selectedProductId = null;
+        errorMessage = null;
         UpdateTotalAmount();
+        StateHasChanged();
     }
 
     private void RemoveItem(MyBlazorServerApp.Models.PurchaseOrderItem item)
@@ -441,24 +638,22 @@
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseOrderItem item)
     {
         if (item.Quantity == null || item.Rate == null) return 0;
+
         decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
         decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
         decimal taxableAmount = baseAmount - discount;
 
-        if (item.TaxMode == "Line Inclusive")
-        {
-            return taxableAmount;
-        }
-        else
-        {
-            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m;
-            return taxableAmount + gst;
-        }
+        decimal lineTotal = item.TaxMode == "Line Inclusive"
+            ? taxableAmount
+            : taxableAmount + (taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m);
+
+        return Math.Round(lineTotal, 2);
     }
 
     private void UpdateTotalAmount()
     {
-        purchaseOrderModel.TotalAmount = purchaseOrderModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
+        purchaseOrderModel.TotalAmount = Math.Round(
+            purchaseOrderModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0, 2);
     }
 
     private void OnTaxModeChange(ChangeEventArgs e)
@@ -471,36 +666,59 @@
     {
         newItem.LineTotal = CalculateLineTotal(newItem);
     }
+
+    private async Task<string> GenerateNextPOId(AppDbContext db)
+    {
+        var lastPO = await db.PurchaseOrders
+            .Where(p => p.POId.StartsWith("PO"))
+            .OrderByDescending(p => p.POId)
+            .FirstOrDefaultAsync();
+
+        if (lastPO == null || string.IsNullOrEmpty(lastPO.POId))
+            return "PO001";
+
+        var numberPart = lastPO.POId.Replace("PO", "");
+        if (int.TryParse(numberPart, out int num))
+            return $"PO{(num + 1):D3}";
+
+        return "PO001";
+    }
 }
 
 <style>
     .main-card {
         background: #ffffff;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         padding: 20px;
         margin-bottom: 20px;
     }
+
     .header-container {
         margin-bottom: 20px;
     }
+
     .page-title {
         margin: 0;
         font-size: 24px;
         color: #1e3a8a;
     }
+
     .subtitle {
         margin: 5px 0;
         color: #6c757d;
     }
+
     .action-container {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
     }
+
     .search-bar {
         flex-grow: 1;
     }
+
     .form-control {
         width: 100%;
         padding: 8px;
@@ -508,57 +726,71 @@
         border: 1px solid #ccc;
         border-radius: 4px;
     }
+
     .grid-two, .grid-three {
         display: grid;
         gap: 10px;
         margin-bottom: 10px;
     }
+
     .grid-two {
         grid-template-columns: 1fr 1fr;
     }
+
     .grid-three {
         grid-template-columns: 1fr 1fr 1fr;
     }
+
     .form-item {
         display: flex;
         flex-direction: column;
     }
+
     .form-label {
         margin-bottom: 5px;
         font-weight: bold;
     }
+
     .radio-group {
         display: flex;
         gap: 10px;
     }
+
     .radio-input {
         margin-right: 5px;
     }
+
     .form-actions {
         margin-top: 10px;
     }
+
     .full-width {
         width: 100%;
     }
+
     .items-table {
         margin-top: 20px;
     }
+
     .table-custom {
         width: 100%;
         border-collapse: collapse;
     }
-    .table-custom th,
-    .table-custom td {
-        padding: 8px;
-        text-align: left;
-        border: 1px solid #dee2e6;
-    }
+
+        .table-custom th, .table-custom td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+
     .summary {
         margin-top: 20px;
     }
+
     .product-table-box {
         margin-top: 20px;
     }
+
     .btn-primary {
         background-color: #1e3a8a;
         color: white;
@@ -566,6 +798,7 @@
         padding: 8px 15px;
         border-radius: 4px;
     }
+
     .btn-secondary {
         background-color: #6c757d;
         color: white;
@@ -573,129 +806,70 @@
         padding: 8px 15px;
         border-radius: 4px;
     }
-    .btn-warning {
-        background-color: #ffc107;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-info {
-        background-color: #17a2b8;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .me-1 {
-        margin-right: 0.25rem;
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 12px;
     }
 
-    /* Responsive Adjustments */
+    /* Light Buttons */
+    .btn-warning-light {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        border: 1px solid #ffeaa7 !important;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 4px;
+    }
+
+    .btn-danger-light {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        border: 1px solid #f5c6cb !important;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 4px;
+    }
+
+    .btn-info-light {
+        background-color: #d1ecf1 !important;
+        color: #0c5460 !important;
+        border: 1px solid #bee5eb !important;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 4px;
+    }
+
+    .btn-warning-light:hover {
+        background-color: #ffeaa7 !important;
+    }
+
+    .btn-danger-light:hover {
+        background-color: #f1b0b7 !important;
+    }
+
+    .btn-info-light:hover {
+        background-color: #a7d8e0 !important;
+    }
+
+    /* FORCE HEADER STYLE */
+    .table-custom thead th {
+        background-color: #1e3a8a !important;
+        color: white !important;
+        font-weight: bold !important;
+        border: none !important;
+    }
+
+    /* Responsive */
     @@media (max-width: 768px) {
-        /* Mobile View */
-        .page-title {
-            font-size: 20px;
-        }
-        .subtitle {
-            font-size: 14px;
-        }
-        .action-container {
-            justify-content: center;
-        }
-        .search-bar .form-control {
-            width: 100%;
-            max-width: 200px;
-        }
-        .form-container .page-title {
-            font-size: 18px;
-        }
         .grid-two, .grid-three {
             grid-template-columns: 1fr;
         }
-        .form-actions {
-            text-align: center;
-        }
-        .items-table table, .product-table-box table {
-            display: block;
-            overflow-x: auto;
-        }
+
         .table-custom th, .table-custom td {
             min-width: 100px;
             padding: 6px;
             font-size: 12px;
-        }
-        .table-custom th {
-            white-space: nowrap;
-        }
-        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
-            width: 100%;
-            margin-bottom: 5px;
-        }
-    }
-
-    @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .page-title {
-            font-size: 22px;
-        }
-        .subtitle {
-            font-size: 15px;
-        }
-        .action-container {
-            justify-content: flex-end;
-        }
-        .search-bar .form-control {
-            width: 180px;
-        }
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-        .grid-three {
-            grid-template-columns: 1fr 1fr;
-        }
-        .form-actions {
-            text-align: right;
-        }
-        .table-custom th, .table-custom td {
-            padding: 6px;
-            font-size: 14px;
-        }
-    }
-
-    @@media (min-width: 1025px) {
-        /* Desktop View */
-        .page-title {
-            font-size: 24px;
-        }
-        .subtitle {
-            font-size: 16px;
-        }
-        .action-container {
-            justify-content: flex-end;
-        }
-        .search-bar .form-control {
-            width: 200px;
-        }
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-        .grid-three {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        .form-actions {
-            text-align: right;
-        }
-        .table-custom th, .table-custom td {
-            padding: 8px;
-            font-size: 16px;
         }
     }
 </style>

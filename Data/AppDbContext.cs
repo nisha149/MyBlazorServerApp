@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyBlazorServerApp.Models;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MyBlazorServerApp.Data
 {
@@ -22,6 +25,13 @@ namespace MyBlazorServerApp.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // --- SEQUENCES ---
+            // Add a DB sequence for generating unique customer codes (CUST###).
+            // This will be created by migrations OR you can create it manually via SQL.
+            modelBuilder.HasSequence<int>("CustomerCodeSeq", schema: "dbo")
+                        .StartsAt(1)
+                        .IncrementsBy(1);
+
             // Customer
             modelBuilder.Entity<Customer>(entity =>
             {
