@@ -128,7 +128,9 @@
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                                <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
+                                    <strong>&#8377; @((newItem.LineTotal ?? 0).ToString("N2"))</strong>
+                                </div>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Tax Calculation Mode</label>
@@ -171,10 +173,10 @@
                                             <td>@item.ProductId</td>
                                             <td>@item.ProductName</td>
                                             <td>@item.Quantity</td>
-                                            <td>@(item.Rate.HasValue? item.Rate.Value.ToString("C") : "N/A")</td>
+                                            <td><strong>&#8377; @(item.Rate.HasValue? item.Rate.Value.ToString("N2") : "N/A")</strong></td>
                                             <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
                                             <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
+                                            <td><strong>&#8377; @(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</strong></td>
                                             <td>@item.TaxMode</td>
                                             <td>
                                                 <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)">Delete</button>
@@ -188,7 +190,9 @@
                         <div class="summary">
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
-                                <InputNumber class="form-control" @bind-Value="purchaseInvoiceModel.TotalAmount" readonly />
+                                <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
+                                    <strong>&#8377; @((purchaseInvoiceModel.TotalAmount ?? 0).ToString("N2"))</strong>
+                                </div>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">Save Purchase Invoice</button>
@@ -229,7 +233,7 @@
                                 <td>@pi.SupplierName</td>
                                 <td>@(pi.InvoiceDate.HasValue? pi.InvoiceDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(pi.DueDate.HasValue? pi.DueDate.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(pi.TotalAmount.HasValue? pi.TotalAmount.Value.ToString("C") : "N/A")</td>
+                                <td><strong>&#8377; @(pi.TotalAmount.HasValue? pi.TotalAmount.Value.ToString("N2") : "N/A")</strong></td>
                                 <td>@pi.Status</td>
                                 <td class="action-buttons">
                                     <button class="btn btn-warning-soft btn-sm" @onclick="() => EditPurchaseInvoice(pi)">Edit</button>
@@ -260,7 +264,7 @@
     private List<Product> products = new();
     private List<Supplier> suppliers = new();
     private List<string> categories = new();
-    private string? selectedCategory; // NEW
+    private string? selectedCategory;
 
     protected override async Task OnInitializedAsync()
     {
@@ -273,14 +277,10 @@
 
         suppliers = await db.Suppliers.ToListAsync();
 
-        // FIXED: Load ALL categories from ProductGroup table
         categories = await db.ProductGroups
             .OrderBy(g => g.Name)
             .Select(g => g.Name)
             .ToListAsync();
-
-        // IF YOU DON'T HAVE ProductGroups TABLE, UNCOMMENT BELOW:
-        // categories = new List<string> { "Electronics", "Stationery", "Furniture", "Clothing", "Food", "Others" };
 
         ApplyFilter();
     }
@@ -562,16 +562,14 @@
         }
     }
 
-    // NEW: Filter products when category changes
     private void OnCategorySelect(ChangeEventArgs e)
     {
         selectedCategory = e.Value?.ToString();
-        selectedProductId = null; // reset product
+        selectedProductId = null;
         newItem.Category = selectedCategory;
         StateHasChanged();
     }
 
-    // NEW: Only show products in selected category
     private IEnumerable<Product> FilteredProducts =>
         string.IsNullOrEmpty(selectedCategory)
             ? products
@@ -679,7 +677,7 @@
             Category = null
         };
         selectedProductId = null;
-        selectedCategory = null; // reset category too
+        selectedCategory = null;
     }
 }
 
@@ -815,7 +813,6 @@
         border-radius: 4px;
     }
 
-    /* MILDER COLORS */
     .btn-warning-soft {
         background-color: #fef3c7;
         color: #92400e;
