@@ -106,7 +106,7 @@
                                 <label class="form-label">Product</label>
                                 <InputSelect class="form-control" @bind-Value="selectedProductId" @onchange="OnProductSelected">
                                     <option value="">-- Select Product --</option>
-                                    @foreach (var prod in products)
+                                    @foreach (var prod in FilteredProducts)
                                     {
                                         <option value="@prod.Id">@prod.Name</option>
                                     }
@@ -340,15 +340,16 @@
         try
         {
             using var db = DbFactory.CreateDbContext();
+
+            // FIXED: Load ALL categories from ProductGroups table
+            productGroups = await db.ProductGroups
+                .OrderBy(g => g.Name)
+                .ToListAsync();
+
+            // Load products with their groups
             products = await db.Products
                 .Include(p => p.ProductGroup)
                 .ToListAsync();
-
-            productGroups = products
-                .Where(p => p.ProductGroup != null)
-                .Select(p => p.ProductGroup!)
-                .DistinctBy(g => g.Id)
-                .ToList();
         }
         catch (Exception ex)
         {
@@ -516,30 +517,24 @@
         ApplyFilter();
     }
 
+    // NEW: Filter products when category changes
     private async Task OnCategorySelected(ChangeEventArgs e)
     {
         selectedCategoryId = int.TryParse(e.Value?.ToString(), out int id) ? id : null;
+        selectedProductId = null; // Reset product
+
         var group = productGroups.FirstOrDefault(g => g.Id == selectedCategoryId);
         newItem.Category = group?.Name ?? "";
-
-        await LoadProducts();
-
-        if (selectedCategoryId.HasValue)
-        {
-            products = products.Where(p => p.CategoryId == selectedCategoryId.Value).ToList();
-        }
-
-        if (selectedProductId.HasValue && !products.Any(p => p.Id == selectedProductId.Value))
-        {
-            selectedProductId = null;
-            newItem.ProductName = "";
-            newItem.Rate = 0;
-            newItem.GSTPercent = null;
-        }
 
         UpdateLineTotal();
         StateHasChanged();
     }
+
+    // NEW: Only show products in selected category
+    private IEnumerable<MyBlazorServerApp.Models.Product> FilteredProducts =>
+        selectedCategoryId.HasValue
+            ? products.Where(p => p.CategoryId == selectedCategoryId.Value)
+            : products;
 
     private void OnProductSelected(ChangeEventArgs e)
     {
@@ -602,7 +597,6 @@
 
         newItem.LineTotal = CalculateLineTotal(newItem);
 
-        // ONLY CHANGE: NO -01, -02 → JUST PO ID
         string itemCode = purchaseOrderModel.POId;
 
         purchaseOrderModel.Items.Add(new MyBlazorServerApp.Models.PurchaseOrderItem
@@ -862,14 +856,17 @@
 
     /* Responsive */
     @@media (max-width: 768px) {
-        .grid-two, .grid-three {
-            grid-template-columns: 1fr;
-        }
+        .grid-two, .grid-three
 
-        .table-custom th, .table-custom td {
-            min-width: 100px;
-            padding: 6px;
-            font-size: 12px;
-        }
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .table-custom th, .table-custom td {
+        min-width: 100px;
+        padding: 6px;
+        font-size: 12px;
+    }
+
     }
 </style>

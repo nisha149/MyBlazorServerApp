@@ -3,6 +3,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
+
 <div class="main-card">
     <div class="header-container" style="@(isFormVisible ? "display: none;" : "")">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -19,7 +20,7 @@
             </div>
         </div>
     </div>
-    @* FORM / ADD *@
+
     @if (isFormVisible)
     {
         <div class="form-container">
@@ -30,26 +31,36 @@
             <div class="add-card">
                 <div class="inner-box">
                     <EditForm Model="purchaseInvoiceModel" OnValidSubmit="SavePurchaseInvoice">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary class="alert alert-danger" />
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
                             <div class="alert alert-danger">@errorMessage</div>
                         }
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">PI ID</label>
-                                <InputText class="form-control" @bind-Value="purchaseInvoiceModel.PIId" required />
+                                <InputText class="form-control" @bind-Value="purchaseInvoiceModel.PIId" readonly />
+                                @if (editingPurchaseInvoice == null)
+                                {
+                                    <small class="text-muted">Auto-generated (e.g., PI0001)</small>
+                                }
                             </div>
                             <div class="form-item">
-                                <label class="form-label">Supplier</label>
-                                <InputText class="form-control" @bind-Value="purchaseInvoiceModel.SupplierName" required />
+                                <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control" @bind-Value="purchaseInvoiceModel.SupplierId">
+                                    <option value="0">Select Supplier</option>
+                                    @foreach (var supplier in suppliers)
+                                    {
+                                        <option value="@supplier.Id">@supplier.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
-                                <label class="form-label">Invoice Date</label>
-                                <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.InvoiceDate" required />
+                                <label class="form-label">Invoice Date <span class="text-danger">*</span></label>
+                                <InputDate class="form-control" @bind-Value="purchaseInvoiceModel.InvoiceDate" />
                             </div>
                         </div>
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Due Date</label>
@@ -69,13 +80,15 @@
                                 <InputTextArea class="form-control" @bind-Value="purchaseInvoiceModel.Remarks" />
                             </div>
                         </div>
+
                         <h4 class="section-title" style="color: #1e3a8a;">Purchase Invoice Items</h4>
+
                         <div class="grid-three">
                             <div class="form-item">
-                                <label class="form-label">Product</label>
-                                <InputSelect class="form-control" @bind-Value="selectedProductId">
+                                <label class="form-label">Product <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control" @bind-Value="selectedProductId" @onchange="OnProductSelect">
                                     <option value="">Select Product</option>
-                                    @foreach (var product in products)
+                                    @foreach (var product in FilteredProducts)
                                     {
                                         <option value="@product.Id">@product.Name</option>
                                     }
@@ -83,17 +96,24 @@
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Category</label>
-                                <InputText class="form-control" @bind-Value="newItem.Category" />
+                                <InputSelect class="form-control" @bind-Value="newItem.Category" @onchange="OnCategorySelect">
+                                    <option value="">Select Category</option>
+                                    @foreach (var cat in categories)
+                                    {
+                                        <option value="@cat">@cat</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
-                                <label class="form-label">Quantity</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" required />
+                                <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
                             </div>
                         </div>
+
                         <div class="grid-three">
                             <div class="form-item">
-                                <label class="form-label">Rate</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Rate" required />
+                                <label class="form-label">Rate <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" />
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Disc %</label>
@@ -104,6 +124,7 @@
                                 <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
                             </div>
                         </div>
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
@@ -123,13 +144,15 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="form-actions full-width">
                             <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
                         </div>
+
                         <div class="items-table">
                             <table class="table table-custom">
-                                <thead>
-                                    <tr style="background-color: #1e3a8a; color: white;">
+                                <thead class="table-header-darkblue">
+                                    <tr>
                                         <th>PRODUCT ID</th>
                                         <th>PRODUCT NAME</th>
                                         <th>QUANTITY</th>
@@ -154,13 +177,14 @@
                                             <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("C") : "N/A")</td>
                                             <td>@item.TaxMode</td>
                                             <td>
-                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)">Delete</button>
                                             </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
                         </div>
+
                         <div class="summary">
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
@@ -175,13 +199,13 @@
             </div>
         </div>
     }
-    @* LIST VIEW *@
+
     @if (!isFormVisible)
     {
         <div class="product-table-box">
             <table class="table table-custom">
-                <thead>
-                    <tr style="background-color: #1e3a8a; color: white;">
+                <thead class="table-header-darkblue">
+                    <tr>
                         <th>PI ID</th>
                         <th>SUPPLIER NAME</th>
                         <th>INVOICE DATE</th>
@@ -207,12 +231,10 @@
                                 <td>@(pi.DueDate.HasValue? pi.DueDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(pi.TotalAmount.HasValue? pi.TotalAmount.Value.ToString("C") : "N/A")</td>
                                 <td>@pi.Status</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditPurchaseInvoice(pi)"><i class="oi oi-pencil"></i></button>
-                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeletePurchaseInvoice(pi)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintPurchaseInvoice(pi.Id)">
-                                        <i class="oi oi-print"></i>
-                                    </button>
+                                <td class="action-buttons">
+                                    <button class="btn btn-warning-soft btn-sm" @onclick="() => EditPurchaseInvoice(pi)">Edit</button>
+                                    <button class="btn btn-danger-soft btn-sm" @onclick="() => DeletePurchaseInvoice(pi)">Delete</button>
+                                    <button class="btn btn-info-soft btn-sm" @onclick="() => PrintPurchaseInvoice(pi.Id)">Print</button>
                                 </td>
                             </tr>
                         }
@@ -236,12 +258,30 @@
     private MyBlazorServerApp.Models.PurchaseInvoiceItem newItem = new();
     private int? selectedProductId;
     private List<Product> products = new();
+    private List<Supplier> suppliers = new();
+    private List<string> categories = new();
+    private string? selectedCategory; // NEW
 
     protected override async Task OnInitializedAsync()
     {
         await LoadPurchaseInvoices();
         using var db = DbFactory.CreateDbContext();
-        products = await db.Products.ToListAsync();
+
+        products = await db.Products
+            .Include(p => p.ProductGroup)
+            .ToListAsync();
+
+        suppliers = await db.Suppliers.ToListAsync();
+
+        // FIXED: Load ALL categories from ProductGroup table
+        categories = await db.ProductGroups
+            .OrderBy(g => g.Name)
+            .Select(g => g.Name)
+            .ToListAsync();
+
+        // IF YOU DON'T HAVE ProductGroups TABLE, UNCOMMENT BELOW:
+        // categories = new List<string> { "Electronics", "Stationery", "Furniture", "Clothing", "Food", "Others" };
+
         ApplyFilter();
     }
 
@@ -249,148 +289,209 @@
     {
         try
         {
-            Console.WriteLine("Loading purchase invoices...");
             using var db = DbFactory.CreateDbContext();
             purchaseInvoices = await db.PurchaseInvoices.Include(p => p.Items).ToListAsync();
             filteredPurchaseInvoices = purchaseInvoices.ToList();
-            Console.WriteLine($"Loaded {purchaseInvoices.Count} purchase invoices.");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error loading purchase invoices: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-            Console.WriteLine($"Load error: {ex.Message}");
+            errorMessage = $"Error loading purchase invoices: {ex.Message}";
         }
     }
 
-    private void ShowAddForm()
+    private async Task ShowAddForm()
     {
-        Console.WriteLine("Showing add form...");
         editingPurchaseInvoice = null;
-        purchaseInvoiceModel = new MyBlazorServerApp.Models.PurchaseInvoice { Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>() };
-        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
-        selectedProductId = null;
+        purchaseInvoiceModel = new MyBlazorServerApp.Models.PurchaseInvoice
+        {
+            Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>(),
+            InvoiceDate = DateTime.Today,
+            SupplierId = 0
+        };
+
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            purchaseInvoiceModel.PIId = await GenerateNextPIId(db);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"GenerateNextPIId failed: {ex.Message}");
+            purchaseInvoiceModel.PIId = "PI0001";
+        }
+
+        ResetNewItem();
         isFormVisible = true;
         errorMessage = null;
+        StateHasChanged();
     }
 
     private void BackToList()
     {
-        Console.WriteLine("Returning to list view...");
         isFormVisible = false;
         editingPurchaseInvoice = null;
         errorMessage = null;
+        StateHasChanged();
     }
 
     private async Task SavePurchaseInvoice()
     {
-        try
+        errorMessage = null;
+
+        using var db = DbFactory.CreateDbContext();
+
+        if (string.IsNullOrWhiteSpace(purchaseInvoiceModel.PIId))
         {
-            Console.WriteLine("Starting SavePurchaseInvoice...");
-            Console.WriteLine($"PIId: {purchaseInvoiceModel.PIId}, Supplier: {purchaseInvoiceModel.SupplierName}, Items count: {purchaseInvoiceModel.Items?.Count ?? 0}");
-            using var db = DbFactory.CreateDbContext();
-            if (string.IsNullOrEmpty(purchaseInvoiceModel.PIId) || string.IsNullOrEmpty(purchaseInvoiceModel.SupplierName) || !purchaseInvoiceModel.InvoiceDate.HasValue)
+            try
             {
-                errorMessage = "PI ID, Supplier, and Invoice Date are required.";
-                Console.WriteLine(errorMessage);
+                purchaseInvoiceModel.PIId = await GenerateNextPIId(db);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error generating PI ID: {ex.Message}";
+                StateHasChanged();
                 return;
             }
-            int editIdValue = editingPurchaseInvoice?.Id ?? 0;
+        }
+
+        if (purchaseInvoiceModel.SupplierId <= 0)
+        {
+            errorMessage = "Please select a supplier.";
+            StateHasChanged();
+            return;
+        }
+
+        if (!purchaseInvoiceModel.InvoiceDate.HasValue)
+        {
+            errorMessage = "Invoice Date is required.";
+            StateHasChanged();
+            return;
+        }
+
+        var selectedSupplier = await db.Suppliers.FirstOrDefaultAsync(s => s.Id == purchaseInvoiceModel.SupplierId);
+        if (selectedSupplier == null)
+        {
+            errorMessage = "Invalid supplier selected.";
+            StateHasChanged();
+            return;
+        }
+        purchaseInvoiceModel.SupplierName = selectedSupplier.Name;
+
+        int editIdValue = editingPurchaseInvoice?.Id ?? 0;
+        if (await db.PurchaseInvoices.AnyAsync(p => p.PIId == purchaseInvoiceModel.PIId && p.Id != editIdValue))
+        {
+            try
+            {
+                purchaseInvoiceModel.PIId = await GenerateNextPIId(db);
+            }
+            catch { }
+
             if (await db.PurchaseInvoices.AnyAsync(p => p.PIId == purchaseInvoiceModel.PIId && p.Id != editIdValue))
             {
-                errorMessage = "A purchase invoice with this PI ID already exists.";
-                Console.WriteLine(errorMessage);
+                errorMessage = "A purchase invoice with this PI ID already exists. Please try again.";
+                StateHasChanged();
                 return;
             }
-            if (purchaseInvoiceModel.Items == null || !purchaseInvoiceModel.Items.Any() || purchaseInvoiceModel.Items.Any(i => string.IsNullOrEmpty(i.ProductId) || !i.Quantity.HasValue || !i.Rate.HasValue))
-            {
-                errorMessage = "At least one item with Product ID, Quantity, and Rate is required.";
-                Console.WriteLine(errorMessage);
-                return;
-            }
-
-            var strategy = db.Database.CreateExecutionStrategy();
-            await strategy.ExecuteAsync(async () =>
-            {
-                using var transaction = await db.Database.BeginTransactionAsync();
-                try
-                {
-                    Console.WriteLine("Beginning transaction and adding/updating PurchaseInvoice...");
-                    if (editingPurchaseInvoice == null)
-                    {
-                        db.PurchaseInvoices.Add(purchaseInvoiceModel);
-                    }
-                    else
-                    {
-                        var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseInvoice.Id);
-                        if (existingPI != null)
-                        {
-                            existingPI.PIId = purchaseInvoiceModel.PIId;
-                            existingPI.SupplierName = purchaseInvoiceModel.SupplierName;
-                            existingPI.InvoiceDate = purchaseInvoiceModel.InvoiceDate;
-                            existingPI.DueDate = purchaseInvoiceModel.DueDate;
-                            existingPI.TotalAmount = purchaseInvoiceModel.TotalAmount;
-                            existingPI.Status = purchaseInvoiceModel.Status;
-                            existingPI.Remarks = purchaseInvoiceModel.Remarks;
-                            existingPI.Items = purchaseInvoiceModel.Items; // Direct assignment
-                        }
-                    }
-                    await db.SaveChangesAsync();
-                    Console.WriteLine("PurchaseInvoice saved successfully.");
-
-                    // Update stock for each item
-                    foreach (var item in purchaseInvoiceModel.Items)
-                    {
-                        if (int.TryParse(item.ProductId, out int productId))
-                        {
-                            var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId);
-                            if (product != null && item.Quantity.HasValue)
-                            {
-                                product.StockQuantity += item.Quantity.Value;
-                                db.Products.Update(product);
-                                await db.SaveChangesAsync();
-                                Console.WriteLine($"Updated stock for Product ID {productId}: New StockQuantity = {product.StockQuantity}");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"Product ID {productId} not found or Quantity is null for stock update.");
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Invalid ProductId format: {item.ProductId}");
-                        }
-                    }
-
-                    await transaction.CommitAsync();
-                    Console.WriteLine("Transaction committed.");
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    throw; // Re-throw to be caught by the outer try-catch
-                }
-            });
-
-            isFormVisible = false;
-            await LoadPurchaseInvoices();
-            ApplyFilter();
-            errorMessage = "Purchase invoice saved successfully.";
         }
-        catch (Exception ex)
+
+        if (purchaseInvoiceModel.Items == null || !purchaseInvoiceModel.Items.Any())
         {
-            errorMessage = $"Error saving purchase invoice: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-            Console.WriteLine($"Save Exception: {ex.Message}, StackTrace: {ex.StackTrace}");
+            errorMessage = "At least one item is required.";
+            StateHasChanged();
+            return;
         }
+
+        foreach (var item in purchaseInvoiceModel.Items)
+        {
+            if (string.IsNullOrEmpty(item.ProductId) || !item.Quantity.HasValue || !item.Rate.HasValue)
+            {
+                errorMessage = "Each item must have Product, Quantity, and Rate.";
+                StateHasChanged();
+                return;
+            }
+        }
+
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                if (editingPurchaseInvoice == null)
+                {
+                    db.PurchaseInvoices.Add(purchaseInvoiceModel);
+                }
+                else
+                {
+                    var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == editingPurchaseInvoice.Id);
+                    if (existingPI != null)
+                    {
+                        existingPI.PIId = purchaseInvoiceModel.PIId;
+                        existingPI.SupplierId = purchaseInvoiceModel.SupplierId;
+                        existingPI.SupplierName = purchaseInvoiceModel.SupplierName;
+                        existingPI.InvoiceDate = purchaseInvoiceModel.InvoiceDate;
+                        existingPI.DueDate = purchaseInvoiceModel.DueDate;
+                        existingPI.TotalAmount = purchaseInvoiceModel.TotalAmount;
+                        existingPI.Status = purchaseInvoiceModel.Status;
+                        existingPI.Remarks = purchaseInvoiceModel.Remarks;
+
+                        db.PurchaseInvoiceItems.RemoveRange(existingPI.Items);
+                        existingPI.Items = purchaseInvoiceModel.Items.Select(i => new MyBlazorServerApp.Models.PurchaseInvoiceItem
+                        {
+                            ProductId = i.ProductId,
+                            ProductName = i.ProductName,
+                            Category = i.Category,
+                            Quantity = i.Quantity,
+                            Rate = Math.Round(i.Rate ?? 0, 2),
+                            DiscountPercent = Math.Round(i.DiscountPercent ?? 0, 2),
+                            GSTPercent = Math.Round(i.GSTPercent ?? 0, 2),
+                            TaxMode = i.TaxMode,
+                            LineTotal = Math.Round(i.LineTotal ?? 0, 2),
+                            PurchaseInvoiceId = existingPI.Id
+                        }).ToList();
+                    }
+                }
+
+                await db.SaveChangesAsync();
+
+                foreach (var item in purchaseInvoiceModel.Items)
+                {
+                    if (int.TryParse(item.ProductId, out int productId))
+                    {
+                        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId);
+                        if (product != null && item.Quantity.HasValue)
+                        {
+                            product.StockQuantity += item.Quantity.Value;
+                            db.Products.Update(product);
+                            await db.SaveChangesAsync();
+                        }
+                    }
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
+
+        isFormVisible = false;
+        await LoadPurchaseInvoices();
+        ApplyFilter();
+        errorMessage = "Purchase invoice saved successfully.";
+        StateHasChanged();
     }
 
     private void EditPurchaseInvoice(MyBlazorServerApp.Models.PurchaseInvoice pi)
     {
-        Console.WriteLine("Editing purchase invoice...");
         editingPurchaseInvoice = pi;
         purchaseInvoiceModel = new MyBlazorServerApp.Models.PurchaseInvoice
         {
             Id = pi.Id,
             PIId = pi.PIId,
+            SupplierId = pi.SupplierId,
             SupplierName = pi.SupplierName,
             InvoiceDate = pi.InvoiceDate,
             DueDate = pi.DueDate,
@@ -399,17 +500,16 @@
             Remarks = pi.Remarks,
             Items = pi.Items?.ToList() ?? new()
         };
-        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
-        selectedProductId = null;
+        ResetNewItem();
         isFormVisible = true;
         errorMessage = null;
+        StateHasChanged();
     }
 
     private async Task DeletePurchaseInvoice(MyBlazorServerApp.Models.PurchaseInvoice pi)
     {
         try
         {
-            Console.WriteLine("Deleting purchase invoice...");
             using var db = DbFactory.CreateDbContext();
             var existingPI = await db.PurchaseInvoices.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == pi.Id);
             if (existingPI != null)
@@ -423,21 +523,20 @@
         catch (Exception ex)
         {
             errorMessage = $"Error deleting purchase invoice: {ex.Message}";
-            Console.WriteLine($"Delete error: {ex.Message}");
         }
     }
 
     private async Task PrintPurchaseInvoice(int id)
     {
-        Console.WriteLine($"Navigating to print for PI ID: {id}");
         NavigationManager.NavigateTo($"/purchaseinvoiceprint/{id}");
     }
 
     private void ApplyFilter()
     {
-        Console.WriteLine("Applying filter...");
         filteredPurchaseInvoices = purchaseInvoices
-            .Where(pi => string.IsNullOrEmpty(searchText) || pi.PIId.Contains(searchText, StringComparison.OrdinalIgnoreCase) || pi.SupplierName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(pi => string.IsNullOrEmpty(searchText) ||
+                        (pi.PIId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (pi.SupplierName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
@@ -445,35 +544,65 @@
 
     private void OnSearchInput(ChangeEventArgs e)
     {
-        Console.WriteLine("Search input changed...");
         searchText = e.Value?.ToString() ?? string.Empty;
         currentPage = 1;
         ApplyFilter();
     }
 
+    private void OnProductSelect(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int productId))
+        {
+            var product = products.FirstOrDefault(p => p.Id == productId);
+            if (product?.ProductGroup != null)
+            {
+                newItem.Category = product.ProductGroup.Name;
+                StateHasChanged();
+            }
+        }
+    }
+
+    // NEW: Filter products when category changes
+    private void OnCategorySelect(ChangeEventArgs e)
+    {
+        selectedCategory = e.Value?.ToString();
+        selectedProductId = null; // reset product
+        newItem.Category = selectedCategory;
+        StateHasChanged();
+    }
+
+    // NEW: Only show products in selected category
+    private IEnumerable<Product> FilteredProducts =>
+        string.IsNullOrEmpty(selectedCategory)
+            ? products
+            : products.Where(p => p.ProductGroup?.Name == selectedCategory);
+
     private void AddItem()
     {
-        Console.WriteLine("Adding item...");
-        if (purchaseInvoiceModel.Items == null) purchaseInvoiceModel.Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>();
+        if (purchaseInvoiceModel.Items == null)
+            purchaseInvoiceModel.Items = new List<MyBlazorServerApp.Models.PurchaseInvoiceItem>();
+
         if (!selectedProductId.HasValue || !newItem.Quantity.HasValue || !newItem.Rate.HasValue)
         {
             errorMessage = "Product, Quantity, and Rate are required for items.";
-            Console.WriteLine(errorMessage);
+            StateHasChanged();
             return;
         }
+
         var product = products.FirstOrDefault(p => p.Id == selectedProductId.Value);
         if (product == null)
         {
             errorMessage = "Selected product not found.";
-            Console.WriteLine(errorMessage);
+            StateHasChanged();
             return;
         }
+
         newItem.LineTotal = CalculateLineTotal(newItem);
         var newItemCopy = new MyBlazorServerApp.Models.PurchaseInvoiceItem
         {
-            ProductId = selectedProductId.Value.ToString(), // Use Product.Id as string
+            ProductId = selectedProductId.Value.ToString(),
             ProductName = product.Name,
-            Category = newItem.Category,
+            Category = product.ProductGroup?.Name ?? "Uncategorized",
             Quantity = newItem.Quantity,
             Rate = newItem.Rate,
             DiscountPercent = newItem.DiscountPercent,
@@ -482,19 +611,18 @@
             LineTotal = newItem.LineTotal
         };
         purchaseInvoiceModel.Items.Add(newItemCopy);
-        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem();
-        selectedProductId = null;
+
+        ResetNewItem();
         UpdateTotalAmount();
         errorMessage = null;
-        Console.WriteLine($"Item added. Total items: {purchaseInvoiceModel.Items.Count}");
+        StateHasChanged();
     }
 
     private void RemoveItem(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
     {
-        Console.WriteLine("Removing item...");
         purchaseInvoiceModel.Items?.Remove(item);
         UpdateTotalAmount();
-        Console.WriteLine($"Item removed. Total items: {purchaseInvoiceModel.Items.Count}");
+        StateHasChanged();
     }
 
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.PurchaseInvoiceItem item)
@@ -503,36 +631,55 @@
         decimal baseAmount = (decimal)item.Quantity * (decimal)item.Rate;
         decimal discount = baseAmount * (decimal)(item.DiscountPercent ?? 0) / 100m;
         decimal taxableAmount = baseAmount - discount;
-        if (item.TaxMode == "Line Inclusive")
-        {
-            return taxableAmount;
-        }
-        else
-        {
-            decimal gst = taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m;
-            return taxableAmount + gst;
-        }
+        return item.TaxMode == "Line Inclusive"
+            ? taxableAmount
+            : taxableAmount + (taxableAmount * (decimal)(item.GSTPercent ?? 0) / 100m);
     }
 
     private void UpdateTotalAmount()
     {
-        Console.WriteLine("Updating total amount...");
         purchaseInvoiceModel.TotalAmount = purchaseInvoiceModel.Items?.Sum(i => i.LineTotal ?? 0) ?? 0;
-        Console.WriteLine($"New total amount: {purchaseInvoiceModel.TotalAmount}");
     }
 
     private void OnTaxModeChange(ChangeEventArgs e)
     {
-        Console.WriteLine("Tax mode changed...");
-        newItem.TaxMode = e.Value?.ToString();
+        newItem.TaxMode = e.Value?.ToString() ?? "Line Exclusive";
         UpdateLineTotal();
     }
 
     private void UpdateLineTotal()
     {
-        Console.WriteLine("Updating line total...");
         newItem.LineTotal = CalculateLineTotal(newItem);
-        Console.WriteLine($"New line total: {newItem.LineTotal}");
+    }
+
+    private async Task<string> GenerateNextPIId(AppDbContext db)
+    {
+        var last = await db.PurchaseInvoices
+            .Where(p => p.PIId != null && p.PIId.StartsWith("PI"))
+            .OrderByDescending(p => p.PIId)
+            .FirstOrDefaultAsync();
+
+        if (last == null || string.IsNullOrEmpty(last.PIId))
+            return "PI0001";
+
+        var num = int.Parse(last.PIId.Replace("PI", ""));
+        return $"PI{(num + 1):D4}";
+    }
+
+    private void ResetNewItem()
+    {
+        newItem = new MyBlazorServerApp.Models.PurchaseInvoiceItem
+        {
+            TaxMode = "Line Exclusive",
+            Quantity = null,
+            Rate = null,
+            DiscountPercent = null,
+            GSTPercent = null,
+            LineTotal = null,
+            Category = null
+        };
+        selectedProductId = null;
+        selectedCategory = null; // reset category too
     }
 }
 
@@ -540,7 +687,7 @@
     .main-card {
         background: #ffffff;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         padding: 20px;
         margin-bottom: 20px;
     }
@@ -628,11 +775,20 @@
         border-collapse: collapse;
     }
 
-        .table-custom th,
-        .table-custom td {
+        .table-custom th, .table-custom td {
             padding: 8px;
             text-align: left;
             border: 1px solid #dee2e6;
+        }
+
+    .table-header-darkblue {
+        background-color: #1e3a8a !important;
+        color: white !important;
+    }
+
+        .table-header-darkblue th {
+            color: white !important;
+            background-color: #1e3a8a !important;
         }
 
     .summary {
@@ -659,155 +815,127 @@
         border-radius: 4px;
     }
 
-    .btn-warning {
-        background-color: #ffc107;
-        color: white;
+    /* MILDER COLORS */
+    .btn-warning-soft {
+        background-color: #fef3c7;
+        color: #92400e;
         border: none;
-        padding: 8px 15px;
+        padding: 6px 10px;
         border-radius: 4px;
+        font-size: 12px;
     }
 
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
+    .btn-danger-soft {
+        background-color: #fee2e2;
+        color: #991b1b;
         border: none;
-        padding: 8px 15px;
+        padding: 6px 10px;
         border-radius: 4px;
+        font-size: 12px;
     }
 
-    .btn-info {
-        background-color: #17a2b8;
-        color: white;
+    .btn-info-soft {
+        background-color: #dbeafe;
+        color: #1e40af;
         border: none;
-        padding: 8px 15px;
+        padding: 6px 10px;
         border-radius: 4px;
+        font-size: 12px;
     }
 
-    .me-1 {
-        margin-right: 0.25rem;
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
     }
-    /* Responsive Adjustments */
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
     @@media (max-width: 768px) {
-        /* Mobile View */
-        .page-title {
-            font-size: 20px;
-        }
+        .page-title
 
-        .subtitle {
-            font-size: 14px;
-        }
+    {
+        font-size: 20px;
+    }
 
-        .action-container {
-            justify-content: center;
-        }
+    .subtitle {
+        font-size: 14px;
+    }
 
-        .search-bar .form-control {
-            width: 100%;
-            max-width: 200px;
-        }
+    .action-container {
+        justify-content: center;
+    }
 
-        .form-container .page-title {
-            font-size: 18px;
-        }
+    .search-bar .form-control {
+        width: 100%;
+        max-width: 200px;
+    }
 
-        .grid-two, .grid-three {
-            grid-template-columns: 1fr;
-        }
+    .grid-two, .grid-three {
+        grid-template-columns: 1fr;
+    }
 
-        .form-actions {
-            text-align: center;
-        }
+    .form-actions {
+        text-align: center;
+    }
 
-        .items-table table, .product-table-box table {
-            display: block;
-            overflow-x: auto;
-        }
+    .table-custom th, .table-custom td {
+        min-width: 100px;
+        padding: 6px;
+        font-size: 12px;
+    }
 
-        .table-custom th, .table-custom td {
-            min-width: 100px;
-            padding: 6px;
-            font-size: 12px;
-        }
+    .action-buttons {
+        flex-direction: column;
+    }
 
-        .table-custom th {
-            white-space: nowrap;
-        }
+    .btn-warning-soft, .btn-danger-soft, .btn-info-soft {
+        width: 100%;
+        text-align: center;
+    }
 
-        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
-            width: 100%;
-            margin-bottom: 5px;
-        }
     }
 
     @@media (min-width: 769px) and (max-width: 1024px) {
-        /* Tablet View */
-        .page-title {
-            font-size: 22px;
-        }
+        .grid-two
 
-        .subtitle {
-            font-size: 15px;
-        }
+    {
+        grid-template-columns: 1fr 1fr;
+    }
 
-        .action-container {
-            justify-content: flex-end;
-        }
+    .grid-three {
+        grid-template-columns: 1fr 1fr;
+    }
 
-        .search-bar .form-control {
-            width: 180px;
-        }
+    .form-actions {
+        text-align: right;
+    }
 
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .grid-three {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .form-actions {
-            text-align: right;
-        }
-
-        .table-custom th, .table-custom td {
-            padding: 6px;
-            font-size: 14px;
-        }
     }
 
     @@media (min-width: 1025px) {
-        /* Desktop View */
-        .page-title {
-            font-size: 24px;
-        }
+        .grid-two
 
-        .subtitle {
-            font-size: 16px;
-        }
+    {
+        grid-template-columns: 1fr 1fr;
+    }
 
-        .action-container {
-            justify-content: flex-end;
-        }
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
 
-        .search-bar .form-control {
-            width: 200px;
-        }
+    .form-actions {
+        text-align: right;
+    }
 
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .grid-three {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-
-        .form-actions {
-            text-align: right;
-        }
-
-        .table-custom th, .table-custom td {
-            padding: 8px;
-            font-size: 16px;
-        }
     }
 </style>

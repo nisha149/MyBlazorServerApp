@@ -148,8 +148,13 @@ namespace MyBlazorServerApp.Data
                 entity.ToTable("PurchaseInvoices");
                 entity.HasKey(pi => pi.Id);
                 entity.Property(pi => pi.Id).ValueGeneratedOnAdd();
+
+                // NEW: Foreign key to Supplier
+                entity.Property(pi => pi.SupplierId).IsRequired();
+
                 entity.Property(pi => pi.PIId).HasMaxLength(50).IsRequired();
                 entity.HasIndex(pi => pi.PIId).IsUnique();
+
                 entity.Property(pi => pi.SupplierName).HasMaxLength(100).IsRequired();
                 entity.Property(pi => pi.InvoiceDate).HasDefaultValueSql("GETDATE()");
                 entity.Property(pi => pi.DueDate).HasDefaultValueSql("DATEADD(day, 30, GETDATE())");
@@ -158,10 +163,17 @@ namespace MyBlazorServerApp.Data
                 entity.Property(pi => pi.Remarks).HasMaxLength(500);
                 entity.Property(pi => pi.IsDeleted).HasDefaultValue(false);
                 entity.HasQueryFilter(pi => !pi.IsDeleted);
+
                 entity.HasMany(pi => pi.Items)
                     .WithOne(pii => pii.PurchaseInvoice)
                     .HasForeignKey(pii => pii.PurchaseInvoiceId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                // OPTIONAL: Add FK to Suppliers table
+                entity.HasOne<Supplier>()
+                    .WithMany()
+                    .HasForeignKey(pi => pi.SupplierId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // PurchaseInvoiceItem
