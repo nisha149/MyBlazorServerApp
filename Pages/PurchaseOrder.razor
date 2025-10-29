@@ -136,7 +136,9 @@
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                                <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
+                                    <strong>&#8377; @((newItem.LineTotal ?? 0).ToString("N2"))</strong>
+                                </div>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Tax Calculation Mode</label>
@@ -189,7 +191,7 @@
                                                 <td>@(item.Rate.HasValue? item.Rate.Value.ToString("N2") : "N/A")</td>
                                                 <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
                                                 <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                                <td>@(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</td>
+                                                <td><strong>&#8377; @(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</strong></td>
                                                 <td>@item.TaxMode</td>
                                                 <td>
                                                     <div style="display: flex; gap: 6px; align-items: center;">
@@ -208,8 +210,8 @@
                         <div class="summary">
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
-                                <div class="form-control" style="font-weight: bold; background: #f8f9fa;">
-                                    ₹@(purchaseOrderModel.TotalAmount?.ToString("N2") ?? "0.00")
+                                <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
+                                    <strong>&#8377; @((purchaseOrderModel.TotalAmount ?? 0).ToString("N2"))</strong>
                                 </div>
                             </div>
                             <!-- SAVE PURCHASE ORDER BUTTON — RIGHT ALIGNED -->
@@ -254,7 +256,7 @@
                                 <td>@po.SupplierName</td>
                                 <td>@(po.OrderDate.HasValue? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(po.ExpectedDelivery.HasValue? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("N2") : "N/A")</td>
+                                <td><strong>&#8377; @(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("N2") : "N/A")</strong></td>
                                 <td>@po.Status</td>
                                 <td>
                                     <div style="display: flex; gap: 6px; align-items: center;">
@@ -341,12 +343,10 @@
         {
             using var db = DbFactory.CreateDbContext();
 
-            // FIXED: Load ALL categories from ProductGroups table
             productGroups = await db.ProductGroups
                 .OrderBy(g => g.Name)
                 .ToListAsync();
 
-            // Load products with their groups
             products = await db.Products
                 .Include(p => p.ProductGroup)
                 .ToListAsync();
@@ -517,11 +517,10 @@
         ApplyFilter();
     }
 
-    // NEW: Filter products when category changes
     private async Task OnCategorySelected(ChangeEventArgs e)
     {
         selectedCategoryId = int.TryParse(e.Value?.ToString(), out int id) ? id : null;
-        selectedProductId = null; // Reset product
+        selectedProductId = null;
 
         var group = productGroups.FirstOrDefault(g => g.Id == selectedCategoryId);
         newItem.Category = group?.Name ?? "";
@@ -530,7 +529,6 @@
         StateHasChanged();
     }
 
-    // NEW: Only show products in selected category
     private IEnumerable<MyBlazorServerApp.Models.Product> FilteredProducts =>
         selectedCategoryId.HasValue
             ? products.Where(p => p.CategoryId == selectedCategoryId.Value)
