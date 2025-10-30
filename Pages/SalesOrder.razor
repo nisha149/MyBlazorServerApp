@@ -13,48 +13,71 @@
             </div>
             <div class="action-container">
                 <div class="search-bar">
-                    <InputText class="form-control" @bind-Value="searchText" placeholder="Search by SO ID or Customer..." @oninput="OnSearchInput" />
+                    <InputText class="form-control" @bind-Value="searchText"
+                               placeholder="Search by SO ID or Customer..." @oninput="OnSearchInput" />
                 </div>
                 <button class="btn btn-primary" @onclick="ApplyFilter">Search</button>
                 <button class="btn btn-primary" @onclick="ShowAddForm">Add New SO</button>
             </div>
         </div>
     </div>
+
     @if (isFormVisible)
     {
         <div class="form-container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 class="page-title" style="color: #1e3a8a;">@(editingSalesOrder == null ? "Create New Sales Order" : "Edit Sales Order")</h3>
+                <h3 class="page-title" style="color: #1e3a8a;">
+                    @(editingSalesOrder == null ? "Create New Sales Order" : "Edit Sales Order")
+                </h3>
                 <button class="btn btn-secondary" @onclick="BackToList">View All SOs</button>
             </div>
+
             <div class="add-card">
                 <div class="inner-box">
                     <EditForm Model="salesOrderModel" OnValidSubmit="SaveSalesOrder">
                         <DataAnnotationsValidator />
                         <ValidationSummary class="alert alert-danger" />
+
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <div class="alert alert-danger">@errorMessage</div>
+                            <div class="alert-danger">@errorMessage</div>
                         }
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">SO ID</label>
-                                <InputText class="form-control" @bind-Value="salesOrderModel.SOId" required />
+                                <InputText class="form-control" @bind-Value="salesOrderModel.SOId" readonly />
+                                @if (editingSalesOrder == null)
+                                {
+                                    <small class="text-muted">Auto-generated (e.g., SO0001)</small>
+                                }
                             </div>
+
                             <div class="form-item">
-                                <label class="form-label">Customer Name</label>
-                                <InputText class="form-control" @bind-Value="salesOrderModel.CustomerName" required />
+                                <label class="form-label">Customer <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control"
+                                             @bind-Value="salesOrderModel.CustomerId"
+                                             required>
+                                    <option value="">-- Select Customer --</option>
+                                    @foreach (var cust in customers)
+                                    {
+                                        <option value="@cust.Id">@cust.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
+
                             <div class="form-item">
-                                <label class="form-label">Order Date</label>
+                                <label class="form-label">Order Date <span class="text-danger">*</span></label>
                                 <InputDate class="form-control" @bind-Value="salesOrderModel.OrderDate" required />
                             </div>
                         </div>
+
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Expected Delivery</label>
                                 <InputDate class="form-control" @bind-Value="salesOrderModel.ExpectedDelivery" />
                             </div>
+
                             <div class="form-item">
                                 <label class="form-label">Status</label>
                                 <InputSelect class="form-control" @bind-Value="salesOrderModel.Status">
@@ -66,66 +89,107 @@
                                     <option>Cancelled</option>
                                 </InputSelect>
                             </div>
+
                             <div class="form-item">
                                 <label class="form-label">Remarks</label>
                                 <InputTextArea class="form-control" @bind-Value="salesOrderModel.Remarks" />
                             </div>
                         </div>
-                        <h4 class="section-title" style="color: #1e3a8a;">Sales Order Items</h4>
+
+                        <h4 class="section-title" style="color: #1e3a8a; margin-top: 25px;">Sales Order Items</h4>
+
+                        <!-- ROW 1 -->
                         <div class="grid-three">
                             <div class="form-item">
-                                <label class="form-label">Product</label>
-                                <InputText class="form-control" @bind-Value="newItem.ProductName" required />
+                                <label class="form-label">Product <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control"
+                                             @bind-Value="selectedProductId"
+                                             @onchange="OnProductSelected">
+                                    <option value="">-- Select Product --</option>
+                                    @foreach (var p in products)
+                                    {
+                                        <option value="@p.Id">@p.Name</option>
+                                    }
+                                </InputSelect>
                             </div>
+
                             <div class="form-item">
-                                <label class="form-label">Quantity</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" required />
+                                <label class="form-label">Category <span class="text-danger">*</span></label>
+                                <InputSelect class="form-control" @bind-Value="selectedCategory">
+                                    <option value="">-- Select Category --</option>
+                                    @foreach (var cat in categories)
+                                    {
+                                        <option value="@cat">@cat</option>
+                                    }
+                                </InputSelect>
                             </div>
+
                             <div class="form-item">
-                                <label class="form-label">Rate</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Rate" required />
+                                <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
                             </div>
                         </div>
+
+                        <!-- ROW 2 -->
                         <div class="grid-three">
+                            <div class="form-item">
+                                <label class="form-label">Rate <span class="text-danger">*</span></label>
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" />
+                            </div>
+
                             <div class="form-item">
                                 <label class="form-label">Discount %</label>
                                 <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" />
                             </div>
+
                             <div class="form-item">
                                 <label class="form-label">GST %</label>
                                 <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
                             </div>
+                        </div>
+
+                        <!-- ROW 3 -->
+                        <div class="grid-two" style="align-items: end;">
                             <div class="form-item">
                                 <label class="form-label">Line Total</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.LineTotal" readonly />
+                                <div class="form-control" style="font-weight: bold; background:#f8f9fa; color:#1e3a8a;">
+                                    <strong>₹ @newItem.LineTotal.ToString("N2")</strong>
+                                </div>
                             </div>
-                        </div>
-                        <div class="grid-two">
+
                             <div class="form-item">
                                 <label class="form-label">Tax Mode</label>
                                 <div class="radio-group">
                                     <label>
-                                        <input type="radio" name="taxMode" value="Line Exclusive" checked="@(newItem.TaxMode == "Line Exclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        <input type="radio" name="taxMode" value="Line Exclusive"
+                                               checked="@(newItem.TaxMode == "Line Exclusive")"
+                                               @onchange="OnTaxModeChange" class="radio-input" />
                                         Exclusive
                                     </label>
                                     <label>
-                                        <input type="radio" name="taxMode" value="Line Inclusive" checked="@(newItem.TaxMode == "Line Inclusive")" @onchange="OnTaxModeChange" class="radio-input" />
+                                        <input type="radio" name="taxMode" value="Line Inclusive"
+                                               checked="@(newItem.TaxMode == "Line Inclusive")"
+                                               @onchange="OnTaxModeChange" class="radio-input" />
                                         Inclusive
                                     </label>
                                 </div>
                             </div>
                         </div>
-                        <div class="form-actions full-width">
+
+                        <div class="form-actions actions-right" style="margin-top: 15px;">
                             <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
                         </div>
-                        <div class="items-table">
+
+                        <!-- ITEMS TABLE -->
+                        <div class="items-table" style="margin-top: 20px;">
                             <table class="table table-custom">
                                 <thead>
-                                    <tr style="background-color: #1e3a8a; color: white;">
+                                    <tr>
                                         <th>Product Name</th>
-                                        <th>Quantity</th>
+                                        <th>Category</th>
+                                        <th>Qty</th>
                                         <th>Rate</th>
-                                        <th>Discount %</th>
+                                        <th>Disc %</th>
                                         <th>GST %</th>
                                         <th>Line Total</th>
                                         <th>Tax Mode</th>
@@ -133,37 +197,45 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (salesOrderModel.Items != null)
+                                    @if (salesOrderModel.Items != null && salesOrderModel.Items.Any())
                                     {
                                         foreach (var item in salesOrderModel.Items)
                                         {
                                             <tr>
                                                 <td>@(item.ProductName ?? "N/A")</td>
+                                                <td>@(item.Category ?? "N/A")</td>
                                                 <td>@item.Quantity</td>
-                                                <td>@(item.Rate != 0 ? item.Rate.ToString("C") : "0.00")</td>
-                                                <td>@(item.DiscountPercent != 0 ? item.DiscountPercent.ToString("F2") : "0.00")</td>
-                                                <td>@(item.GSTPercent != 0 ? item.GSTPercent.ToString("F2") : "0.00")</td>
-                                                <td>@(item.LineTotal != 0 ? item.LineTotal.ToString("C") : "0.00")</td>
+                                                <td><strong>₹ @(item.Rate > 0 ? item.Rate.ToString("N2") : "0.00")</strong></td>
+                                                <td>@(item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F1") : "0.0")</td>
+                                                <td>@(item.GSTPercent > 0 ? item.GSTPercent.ToString("F1") : "0.0")</td>
+                                                <td><strong>₹ @(item.LineTotal > 0 ? item.LineTotal.ToString("N2") : "0.00")</strong></td>
                                                 <td>@(item.TaxMode ?? "N/A")</td>
                                                 <td>
-                                                    <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)"><i class="oi oi-trash"></i></button>
+                                                    <button class="btn-action btn-sm" @onclick="() => RemoveItem(item)">
+                                                        Delete
+                                                    </button>
                                                 </td>
                                             </tr>
                                         }
                                     }
                                     else
                                     {
-                                        <tr><td colspan="8">No items added.</td></tr>
+                                        <tr><td colspan="9" class="text-center">No items added.</td></tr>
                                     }
                                 </tbody>
                             </table>
                         </div>
-                        <div class="summary">
+
+                        <div class="summary" style="margin-top: 25px;">
                             <div class="form-item">
                                 <label class="form-label">Total Amount</label>
-                                <InputNumber class="form-control" @bind-Value="salesOrderModel.TotalAmount" readonly />
+                                <div class="form-control"
+                                     style="font-weight:bold;background:#f8f9fa;color:#1e3a8a;">
+                                    <strong>₹ @salesOrderModel.TotalAmount.ToString("N2")</strong>
+                                </div>
                             </div>
-                            <div class="form-actions">
+
+                            <div class="form-actions actions-right" style="margin-top: 15px;">
                                 <button type="submit" class="btn btn-primary">Save Sales Order</button>
                             </div>
                         </div>
@@ -172,12 +244,14 @@
             </div>
         </div>
     }
+
     @if (!isFormVisible)
     {
         <div class="product-table-box">
+            <!-- SALES ORDERS LIST -->
             <table class="table table-custom">
                 <thead>
-                    <tr style="background-color: #1e3a8a; color: white;">
+                    <tr>
                         <th>SO ID</th>
                         <th>Customer Name</th>
                         <th>Order Date</th>
@@ -198,15 +272,15 @@
                         {
                             <tr>
                                 <td>@(so.SOId ?? "N/A")</td>
-                                <td>@(so.CustomerName ?? "N/A")</td>
+                                <td>@(so.Customer?.Name ?? so.CustomerName ?? "N/A")</td>
                                 <td>@(so.OrderDate != default ? so.OrderDate.ToShortDateString() : "N/A")</td>
                                 <td>@(so.ExpectedDelivery != null ? so.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td>@(so.TotalAmount != 0 ? so.TotalAmount.ToString("C") : "0.00")</td>
+                                <td><strong>₹ @(so.TotalAmount > 0 ? so.TotalAmount.ToString("N2") : "0.00")</strong></td>
                                 <td>@(so.Status ?? "N/A")</td>
                                 <td>
-                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditSalesOrder(so)"><i class="oi oi-pencil"></i></button>
-                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeleteSalesOrder(so)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintSalesOrder(so)"><i class="oi oi-print"></i></button>
+                                    <button class="btn-action btn-sm me-1" @onclick="() => EditSalesOrder(so)">Edit</button>
+                                    <button class="btn-action btn-sm me-1" @onclick="() => DeleteSalesOrder(so)">Delete</button>
+                                    <button class="btn-action btn-sm" @onclick="() => PrintSalesOrder(so)">Print</button>
                                 </td>
                             </tr>
                         }
@@ -218,227 +292,269 @@
 </div>
 
 <style>
+    /* === BRAND COLORS === */
+    :root {
+        --brand-blue: #1e3a8a;
+        --brand-blue-strong: #15255a;
+        --brand-blue-soft: rgba(30,58,138,0.10);
+        --brand-blue-border: rgba(30,58,138,0.20);
+    }
+
+    /* === LAYOUT === */
     .main-card {
-        background: #ffffff;
+        background: #fff;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
         padding: 20px;
         margin-bottom: 20px;
     }
+
     .header-container {
         margin-bottom: 20px;
     }
+
     .page-title {
         margin: 0;
         font-size: 24px;
-        color: #1e3a8a;
+        color: var(--brand-blue);
     }
+
     .subtitle {
         margin: 5px 0;
         color: #6c757d;
     }
+
     .action-container {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        align-items: center;
     }
+
     .search-bar {
         flex-grow: 1;
+        min-width: 160px;
     }
+
     .form-control {
         width: 100%;
         padding: 8px;
         margin-bottom: 10px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        box-sizing: border-box;
     }
+
     .grid-two, .grid-three {
         display: grid;
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 12px;
+        margin-bottom: 12px;
     }
+
     .grid-two {
         grid-template-columns: 1fr 1fr;
     }
+
     .grid-three {
         grid-template-columns: 1fr 1fr 1fr;
     }
+
     .form-item {
         display: flex;
         flex-direction: column;
     }
+
     .form-label {
         margin-bottom: 5px;
         font-weight: bold;
     }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
     .radio-group {
         display: flex;
-        gap: 10px;
+        gap: 15px;
+        align-items: center;
     }
+
     .radio-input {
         margin-right: 5px;
     }
+
+    /* default form-actions (keeps previous behavior) */
     .form-actions {
         margin-top: 10px;
     }
+
+        /* helper to right-align action buttons */
+        .form-actions.actions-right {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+        }
+
+            /* make buttons slightly narrower so layout stays neat */
+            .form-actions.actions-right .btn {
+                min-width: 130px;
+            }
+
     .full-width {
         width: 100%;
     }
-    .items-table {
+
+    .items-table, .product-table-box {
         margin-top: 20px;
     }
+
+    /* === TABLE === */
     .table-custom {
         width: 100%;
         border-collapse: collapse;
+        table-layout: auto;
     }
-    .table-custom th,
-    .table-custom td {
-        padding: 8px;
-        text-align: left;
-        border: 1px solid #dee2e6;
-    }
-    .summary {
-        margin-top: 20px;
-    }
-    .product-table-box {
-        margin-top: 20px;
-    }
-    .btn-primary {
-        background-color: #1e3a8a;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-warning {
-        background-color: #ffc107;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .btn-info {
-        background-color: #17a2b8;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    .me-1 {
-        margin-right: 0.25rem;
-    }
-    /* Responsive Adjustments */
-    @@media (max-width: 768px) {
-        .page-title {
-            font-size: 20px;
-        }
-        .subtitle {
-            font-size: 14px;
-        }
-        .action-container {
-            justify-content: center;
-        }
-        .search-bar .form-control {
-            width: 100%;
-            max-width: 200px;
-        }
-        .form-container .page-title {
-            font-size: 18px;
-        }
-        .grid-two, .grid-three {
-            grid-template-columns: 1fr;
-        }
-        .form-actions {
-            text-align: center;
-        }
-        .items-table table, .product-table-box table {
-            display: block;
-            overflow-x: auto;
-        }
-        .table-custom th, .table-custom td {
-            min-width: 100px;
-            padding: 6px;
-            font-size: 12px;
-        }
-        .table-custom th {
-            white-space: nowrap;
-        }
-        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
-            width: 100%;
-            margin-bottom: 5px;
-        }
-    }
-    @@media (min-width: 769px) and (max-width: 1024px) {
-        .page-title {
-            font-size: 22px;
-        }
-        .subtitle {
-            font-size: 15px;
-        }
-        .action-container {
-            justify-content: flex-end;
-        }
-        .search-bar .form-control {
-            width: 180px;
-        }
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-        .grid-three {
-            grid-template-columns: 1fr 1fr;
-        }
-        .form-actions {
-            text-align: right;
-        }
-        .table-custom th, .table-custom td {
-            padding: 6px;
-            font-size: 14px;
-        }
-    }
-    @@media (min-width: 1025px) {
-        .page-title {
-            font-size: 24px;
-        }
-        .subtitle {
-            font-size: 16px;
-        }
-        .action-container {
-            justify-content: flex-end;
-        }
-        .search-bar .form-control {
-            width: 200px;
-        }
-        .grid-two {
-            grid-template-columns: 1fr 1fr;
-        }
-        .grid-three {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        .form-actions {
-            text-align: right;
-        }
-        .table-custom th, .table-custom td {
+
+        /* Body cells */
+        .table-custom tbody th,
+        .table-custom tbody td {
             padding: 8px;
-            font-size: 16px;
+            text-align: left;
+            border: 1px solid var(--brand-blue-border);
+            background-color: transparent;
+            color: inherit;
+            vertical-align: middle;
         }
+
+        /* Alternate row */
+        .table-custom tbody tr:nth-child(even) {
+            background: #fbfbfd;
+        }
+
+        /* === DARK BLUE HEADER — FORCE STYLES === */
+        .table-custom thead,
+        .table-custom thead tr,
+        .table-custom thead th {
+            background-color: var(--brand-blue) !important;
+            color: #ffffff !important;
+        }
+
+            .table-custom thead th {
+                padding: 10px 12px !important;
+                border-color: rgba(255,255,255,0.08) !important;
+                font-weight: 600 !important;
+                text-align: left;
+            }
+
+    /* === ACTION BUTTONS (mild / same family) === */
+    .btn-action {
+        background: transparent;
+        color: var(--brand-blue);
+        border: 1px solid var(--brand-blue-border);
+        padding: 6px 10px;
+        border-radius: 5px;
+        font-weight: 600;
+        min-width: 62px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.16s ease;
+    }
+
+        .btn-action:hover {
+            background: rgba(30,58,138,0.12);
+            color: var(--brand-blue-strong);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(30,58,138,0.06);
+        }
+
+        .btn-action.btn-sm {
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+
+    /* === PRIMARY & SECONDARY === */
+    .btn-primary {
+        background: var(--brand-blue);
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .me-1 {
+        margin-right: .25rem;
+    }
+
+    /* === RESPONSIVE === */
+    @@media (max-width: 768px) {
+        .grid-two, .grid-three
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-primary, .btn-secondary, .btn-action {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .action-container {
+        justify-content: center;
+    }
+
+    .form-actions.actions-right {
+        display: block;
+        text-align: center;
+    }
+
+        .form-actions.actions-right .btn {
+            min-width: 0;
+            width: 100%;
+        }
+
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        .grid-two
+
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    }
+
+    @@media (min-width: 1025px) {
+        .grid-two
+
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-three {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
     }
 </style>
 
 @code {
+    // === ALL C# CODE (UNCHANGED FROM YOUR LAST VERSION)
     private List<MyBlazorServerApp.Models.SalesOrder> salesOrders = new();
     private List<MyBlazorServerApp.Models.SalesOrder> filteredSalesOrders = new();
     private MyBlazorServerApp.Models.SalesOrder salesOrderModel = new();
@@ -449,12 +565,65 @@
     private int pageSize = 5;
     private string? errorMessage;
     private MyBlazorServerApp.Models.SalesOrderItem newItem = new();
+    private List<Customer> customers = new();
+    private List<Product> products = new();
+    private List<string> categories = new();
+    private int? selectedProductId;
+    private string? selectedCategory;
+
+    private async Task LoadCustomers()
+    {
+        using var db = DbFactory.CreateDbContext();
+        customers = await db.Customers.OrderBy(c => c.Name).ToListAsync();
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            using var db = DbFactory.CreateDbContext();
+            products = await db.Products
+                               .Where(p => !p.IsDeleted)
+                               .Include(p => p.ProductGroup)
+                               .OrderBy(p => p.Name)
+                               .ToListAsync();
+
+            categories = products
+                .Where(p => p.ProductGroup?.Name != null)
+                .Select(p => p.ProductGroup!.Name!)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
+
+            if (products.Any(p => p.ProductGroup == null) && !categories.Contains("Uncategorized"))
+                categories.Insert(0, "Uncategorized");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading products: " + ex.Message);
+            products = new();
+            categories = new();
+        }
+    }
+
+    private async Task<string> GenerateNextSOId(AppDbContext db)
+    {
+        var last = await db.SalesOrders
+            .Where(p => p.SOId != null && p.SOId.StartsWith("SO"))
+            .OrderByDescending(p => p.SOId)
+            .FirstOrDefaultAsync();
+
+        if (last == null || string.IsNullOrEmpty(last.SOId))
+            return "SO0001";
+
+        var num = int.Parse(last.SOId.Replace("SO", ""));
+        return $"SO{(num + 1):D4}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSalesOrders();
+        await Task.WhenAll(LoadSalesOrders(), LoadCustomers(), LoadProducts());
         ApplyFilter();
-        StateHasChanged();
     }
 
     private async Task LoadSalesOrders()
@@ -467,19 +636,14 @@
                 .Include(so => so.Customer)
                 .ToListAsync();
             filteredSalesOrders = salesOrders.ToList();
-            Console.WriteLine($"Loaded {salesOrders.Count} sales orders.");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error loading sales orders: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-            Console.WriteLine(errorMessage);
-            salesOrders = new List<MyBlazorServerApp.Models.SalesOrder>();
-            filteredSalesOrders = new List<MyBlazorServerApp.Models.SalesOrder>();
+            errorMessage = $"Error loading sales orders: {ex.Message}";
         }
-        StateHasChanged();
     }
 
-    private void ShowAddForm()
+    private async Task ShowAddForm()
     {
         editingSalesOrder = null;
         salesOrderModel = new MyBlazorServerApp.Models.SalesOrder
@@ -488,10 +652,24 @@
             OrderDate = DateTime.Today,
             Status = "Pending"
         };
-        newItem = new MyBlazorServerApp.Models.SalesOrderItem();
+
+        using var db = DbFactory.CreateDbContext();
+        salesOrderModel.SOId = await GenerateNextSOId(db);
+
+        await Task.WhenAll(LoadCustomers(), LoadProducts());
+        ResetNewItem();
         isFormVisible = true;
         errorMessage = null;
-        StateHasChanged();
+    }
+
+    private void ResetNewItem()
+    {
+        selectedProductId = null;
+        newItem = new MyBlazorServerApp.Models.SalesOrderItem
+        {
+            TaxMode = "Line Exclusive"
+        };
+        UpdateLineTotal();
     }
 
     private void BackToList()
@@ -500,7 +678,29 @@
         editingSalesOrder = null;
         errorMessage = null;
         ApplyFilter();
-        StateHasChanged();
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e?.Value?.ToString(), out int id))
+        {
+            selectedProductId = id;
+            var prod = products.FirstOrDefault(p => p.Id == id);
+            if (prod != null)
+            {
+                newItem.ProductName = prod.Name;
+                newItem.Rate = prod.RetailRate;
+                newItem.GSTPercent = prod.GstPercentage ?? 0m;
+                selectedCategory = prod.ProductGroup?.Name ?? "Uncategorized";
+            }
+        }
+        else
+        {
+            selectedProductId = null;
+            selectedCategory = null;
+            ResetNewItem();
+        }
+        UpdateLineTotal();
     }
 
     private async Task SaveSalesOrder()
@@ -509,100 +709,87 @@
         {
             errorMessage = null;
             using var db = DbFactory.CreateDbContext();
-            if (string.IsNullOrEmpty(salesOrderModel.SOId) || string.IsNullOrEmpty(salesOrderModel.CustomerName))
+
+            if (editingSalesOrder == null && string.IsNullOrWhiteSpace(salesOrderModel.SOId))
+                salesOrderModel.SOId = await GenerateNextSOId(db);
+
+            if (salesOrderModel.CustomerId == null || salesOrderModel.CustomerId == 0)
             {
-                errorMessage = "SO ID and Customer Name are required.";
-                StateHasChanged();
+                errorMessage = "Please select a customer.";
                 return;
             }
+
+            var selectedCustomer = await db.Customers.FindAsync(salesOrderModel.CustomerId);
+            if (selectedCustomer == null)
+            {
+                errorMessage = "Invalid customer.";
+                return;
+            }
+            salesOrderModel.CustomerName = selectedCustomer.Name;
+
             if (salesOrderModel.Items == null || !salesOrderModel.Items.Any())
             {
                 errorMessage = "At least one item is required.";
-                StateHasChanged();
                 return;
             }
-            if (salesOrderModel.Items.Any(i => string.IsNullOrEmpty(i.ProductName) || i.Quantity == 0 || i.Rate == 0))
+
+            if (salesOrderModel.Items.Any(i => i.Quantity <= 0 || i.Rate <= 0 || string.IsNullOrEmpty(i.ProductName) || string.IsNullOrEmpty(i.Category)))
             {
-                errorMessage = "All items must have Product Name, Quantity, and Rate filled.";
-                StateHasChanged();
+                errorMessage = "All items must have valid Product, Category, Quantity, and Rate.";
                 return;
             }
+
             var strategy = db.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                using var transaction = await db.Database.BeginTransactionAsync();
+                using var tx = await db.Database.BeginTransactionAsync();
                 try
                 {
-                    Console.WriteLine($"Saving SalesOrder: SOId={salesOrderModel.SOId}, CustomerName={salesOrderModel.CustomerName}, ItemsCount={salesOrderModel.Items.Count}");
                     if (editingSalesOrder == null)
                     {
-                        // Ensure ProductId is set for new items
-                        foreach (var item in salesOrderModel.Items)
-                        {
-                            if (string.IsNullOrEmpty(item.ProductId))
-                            {
-                                item.ProductId = Guid.NewGuid().ToString();
-                            }
-                        }
                         db.SalesOrders.Add(salesOrderModel);
                     }
                     else
                     {
-                        var existingSO = await db.SalesOrders
+                        var existing = await db.SalesOrders
                             .Include(so => so.Items)
                             .FirstOrDefaultAsync(so => so.Id == editingSalesOrder.Id);
-                        if (existingSO != null)
+
+                        if (existing == null) throw new Exception("Sales order not found.");
+
+                        existing.SOId = salesOrderModel.SOId;
+                        existing.CustomerName = salesOrderModel.CustomerName;
+                        existing.CustomerId = salesOrderModel.CustomerId;
+                        existing.OrderDate = salesOrderModel.OrderDate;
+                        existing.ExpectedDelivery = salesOrderModel.ExpectedDelivery;
+                        existing.TotalAmount = salesOrderModel.TotalAmount;
+                        existing.Status = salesOrderModel.Status;
+                        existing.Remarks = salesOrderModel.Remarks;
+
+                        existing.Items?.Clear();
+                        foreach (var itm in salesOrderModel.Items)
                         {
-                            existingSO.SOId = salesOrderModel.SOId;
-                            existingSO.CustomerName = salesOrderModel.CustomerName;
-                            existingSO.OrderDate = salesOrderModel.OrderDate;
-                            existingSO.ExpectedDelivery = salesOrderModel.ExpectedDelivery;
-                            existingSO.TotalAmount = salesOrderModel.TotalAmount;
-                            existingSO.Status = salesOrderModel.Status;
-                            existingSO.Remarks = salesOrderModel.Remarks;
-                            existingSO.CustomerId = salesOrderModel.CustomerId;
-                            if (existingSO.Items != null)
+                            existing.Items ??= new List<MyBlazorServerApp.Models.SalesOrderItem>();
+                            existing.Items.Add(new MyBlazorServerApp.Models.SalesOrderItem
                             {
-                                existingSO.Items.Clear();
-                                foreach (var item in salesOrderModel.Items)
-                                {
-                                    existingSO.Items.Add(new MyBlazorServerApp.Models.SalesOrderItem
-                                    {
-                                        ProductId = item.ProductId ?? Guid.NewGuid().ToString(),
-                                        ProductName = item.ProductName,
-                                        Quantity = item.Quantity,
-                                        Rate = item.Rate,
-                                        DiscountPercent = item.DiscountPercent,
-                                        GSTPercent = item.GSTPercent,
-                                        TaxMode = item.TaxMode,
-                                        LineTotal = item.LineTotal
-                                    });
-                                }
-                            }
-                            else
-                            {
-                                existingSO.Items = new List<MyBlazorServerApp.Models.SalesOrderItem>(salesOrderModel.Items);
-                            }
-                            db.SalesOrders.Update(existingSO);
+                                ProductId = itm.ProductId,
+                                ProductName = itm.ProductName,
+                                Category = itm.Category,
+                                Quantity = itm.Quantity,
+                                Rate = itm.Rate,
+                                DiscountPercent = itm.DiscountPercent,
+                                GSTPercent = itm.GSTPercent,
+                                TaxMode = itm.TaxMode,
+                                LineTotal = itm.LineTotal
+                            });
                         }
-                        else
-                        {
-                            errorMessage = "Sales order not found for editing.";
-                            Console.WriteLine(errorMessage);
-                            await transaction.RollbackAsync();
-                            StateHasChanged();
-                            return;
-                        }
+                        db.SalesOrders.Update(existing);
                     }
+
                     await db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    Console.WriteLine($"Sales order saved: SOId={salesOrderModel.SOId}");
-                    salesOrderModel = new MyBlazorServerApp.Models.SalesOrder
-                    {
-                        Items = new List<MyBlazorServerApp.Models.SalesOrderItem>(),
-                        OrderDate = DateTime.Today,
-                        Status = "Pending"
-                    };
+                    await tx.CommitAsync();
+
+                    ResetNewItem();
                     isFormVisible = false;
                     await LoadSalesOrders();
                     ApplyFilter();
@@ -610,16 +797,14 @@
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync();
-                    errorMessage = $"Error saving sales order: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-                    Console.WriteLine(errorMessage);
+                    await tx.RollbackAsync();
+                    errorMessage = $"Error: {ex.Message}";
                 }
             });
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error executing transaction: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-            Console.WriteLine(errorMessage);
+            errorMessage = $"Error: {ex.Message}";
         }
         StateHasChanged();
     }
@@ -631,18 +816,19 @@
         {
             Id = so.Id,
             SOId = so.SOId,
-            CustomerName = so.CustomerName,
+            CustomerName = so.Customer?.Name ?? so.CustomerName,
+            CustomerId = so.CustomerId,
             OrderDate = so.OrderDate,
             ExpectedDelivery = so.ExpectedDelivery,
             TotalAmount = so.TotalAmount,
             Status = so.Status,
             Remarks = so.Remarks,
-            CustomerId = so.CustomerId,
             Items = so.Items?.Select(i => new MyBlazorServerApp.Models.SalesOrderItem
             {
                 Id = i.Id,
-                ProductId = i.ProductId ?? Guid.NewGuid().ToString(),
+                ProductId = i.ProductId,
                 ProductName = i.ProductName,
+                Category = i.Category,
                 Quantity = i.Quantity,
                 Rate = i.Rate,
                 DiscountPercent = i.DiscountPercent,
@@ -651,10 +837,9 @@
                 LineTotal = i.LineTotal
             }).ToList() ?? new List<MyBlazorServerApp.Models.SalesOrderItem>()
         };
-        newItem = new MyBlazorServerApp.Models.SalesOrderItem();
+        ResetNewItem();
         isFormVisible = true;
         errorMessage = null;
-        StateHasChanged();
     }
 
     private async Task DeleteSalesOrder(MyBlazorServerApp.Models.SalesOrder so)
@@ -662,46 +847,36 @@
         try
         {
             using var db = DbFactory.CreateDbContext();
-            var existingSO = await db.SalesOrders
-                .Include(so => so.Items)
-                .FirstOrDefaultAsync(s => s.Id == so.Id);
-            if (existingSO != null)
+            var existing = await db.SalesOrders.Include(s => s.Items).FirstOrDefaultAsync(s => s.Id == so.Id);
+            if (existing != null)
             {
-                db.SalesOrders.Remove(existingSO);
+                db.SalesOrders.Remove(existing);
                 await db.SaveChangesAsync();
                 await LoadSalesOrders();
                 ApplyFilter();
-                errorMessage = "Sales order deleted successfully.";
-            }
-            else
-            {
-                errorMessage = "Sales order not found.";
+                errorMessage = "Deleted successfully.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error deleting sales order: {ex.Message} - Inner Exception: {ex.InnerException?.Message}";
-            Console.WriteLine(errorMessage);
+            errorMessage = $"Delete failed: {ex.Message}";
         }
         StateHasChanged();
     }
 
     private void PrintSalesOrder(MyBlazorServerApp.Models.SalesOrder so)
-    {
-        NavigationManager.NavigateTo($"/salesorder/print/{so.Id}");
-    }
+        => NavigationManager.NavigateTo($"/salesorder/print/{so.Id}");
 
     private void ApplyFilter()
     {
         filteredSalesOrders = salesOrders
             .Where(so => string.IsNullOrEmpty(searchText) ||
-                (so.SOId != null && so.SOId.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
-                (so.CustomerName != null && so.CustomerName.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+                         (so.SOId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (so.Customer?.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (so.CustomerName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
             .ToList();
-        Console.WriteLine($"Filtered {filteredSalesOrders.Count} sales orders with searchText='{searchText}'.");
-        StateHasChanged();
     }
 
     private void OnSearchInput(ChangeEventArgs e)
@@ -713,75 +888,65 @@
 
     private void AddItem()
     {
-        if (salesOrderModel.Items == null)
+        if (!selectedProductId.HasValue || newItem.Quantity <= 0 || newItem.Rate <= 0 || string.IsNullOrEmpty(selectedCategory))
         {
-            salesOrderModel.Items = new List<MyBlazorServerApp.Models.SalesOrderItem>();
-        }
-        if (string.IsNullOrEmpty(newItem.ProductName) || newItem.Quantity == 0 || newItem.Rate == 0)
-        {
-            errorMessage = "Product Name, Quantity, and Rate are required for items.";
-            StateHasChanged();
+            errorMessage = "Product, Category, Quantity, and Rate are required.";
             return;
         }
+
+        var prod = products.First(p => p.Id == selectedProductId.Value);
         newItem.LineTotal = CalculateLineTotal(newItem);
-        var newItemCopy = new MyBlazorServerApp.Models.SalesOrderItem
+
+        salesOrderModel.Items ??= new List<MyBlazorServerApp.Models.SalesOrderItem>();
+        salesOrderModel.Items.Add(new MyBlazorServerApp.Models.SalesOrderItem
         {
-            ProductId = Guid.NewGuid().ToString(),
-            ProductName = newItem.ProductName,
+            ProductId = selectedProductId.Value.ToString(),
+            ProductName = prod.Name,
+            Category = selectedCategory,
             Quantity = newItem.Quantity,
             Rate = newItem.Rate,
             DiscountPercent = newItem.DiscountPercent,
             GSTPercent = newItem.GSTPercent,
             TaxMode = newItem.TaxMode,
             LineTotal = newItem.LineTotal
-        };
-        salesOrderModel.Items.Add(newItemCopy);
-        newItem = new MyBlazorServerApp.Models.SalesOrderItem();
+        });
+
+        ResetNewItem();
         UpdateTotalAmount();
         errorMessage = null;
-        StateHasChanged();
     }
 
     private void RemoveItem(MyBlazorServerApp.Models.SalesOrderItem item)
     {
-        if (salesOrderModel.Items != null)
-        {
-            salesOrderModel.Items.Remove(item);
-            UpdateTotalAmount();
-        }
-        StateHasChanged();
+        salesOrderModel.Items?.Remove(item);
+        UpdateTotalAmount();
     }
 
     private decimal CalculateLineTotal(MyBlazorServerApp.Models.SalesOrderItem item)
     {
-        if (item.Quantity == 0 || item.Rate == 0) return 0;
-        decimal baseAmount = item.Quantity * item.Rate;
-        decimal discount = baseAmount * item.DiscountPercent / 100m;
-        decimal taxableAmount = baseAmount - discount;
-        if (item.TaxMode == "Line Inclusive" && item.GSTPercent != 0)
-        {
-            decimal gstRate = item.GSTPercent / 100m;
-            return taxableAmount / (1 + gstRate);
-        }
-        else if (item.GSTPercent != 0)
-        {
-            decimal gst = taxableAmount * item.GSTPercent / 100m;
-            return taxableAmount + gst;
-        }
-        return taxableAmount;
+        if (item.Quantity <= 0 || item.Rate <= 0) return 0m;
+        decimal baseAmt = item.Quantity * item.Rate;
+        decimal disc = baseAmt * item.DiscountPercent / 100m;
+        decimal taxable = baseAmt - disc;
+
+        if (item.TaxMode == "Line Inclusive" && item.GSTPercent > 0)
+            return Math.Round(taxable / (1m + item.GSTPercent / 100m), 2);
+
+        if (item.GSTPercent > 0)
+            return Math.Round(taxable + taxable * item.GSTPercent / 100m, 2);
+
+        return Math.Round(taxable, 2);
     }
 
     private void UpdateTotalAmount()
     {
-        salesOrderModel.TotalAmount = salesOrderModel.Items?.Sum(i => i.LineTotal) ?? 0;
-        StateHasChanged();
+        salesOrderModel.TotalAmount = salesOrderModel.Items?.Sum(i => i.LineTotal) ?? 0m;
     }
 
     private void OnTaxModeChange(ChangeEventArgs e)
     {
-        newItem.TaxMode = e.Value?.ToString();
+        newItem.TaxMode = e.Value?.ToString() ?? "Line Exclusive";
         UpdateLineTotal();
-        StateHasChanged();
     }
 
     private void UpdateLineTotal()
