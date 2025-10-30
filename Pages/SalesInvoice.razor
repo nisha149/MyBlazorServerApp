@@ -40,7 +40,20 @@
                         <div class="grid-two">
                             <div class="form-item">
                                 <label class="form-label">Invoice ID</label>
-                                <InputText class="form-control" @bind-Value="salesInvoiceModel.InvoiceId" disabled="@(editingSalesInvoice != null)" required />
+                                <InputSelect class="form-control" @bind-Value="salesInvoiceModel.InvoiceId" disabled="@(editingSalesInvoice != null)" required>
+                                    @if (editingSalesInvoice != null)
+                                    {
+                                        <option value="@salesInvoiceModel.InvoiceId">@salesInvoiceModel.InvoiceId</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="">-- Select Invoice ID --</option>
+                                        @foreach (var id in availableInvoiceIds)
+                                        {
+                                            <option value="@id">@id</option>
+                                        }
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Customer</label>
@@ -79,7 +92,7 @@
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Product</label>
-                                <InputSelect class="form-control" @bind-Value="selectedProductId" required>
+                                <InputSelect class="form-control" @bind-Value="selectedProductId" @onchange="OnProductSelected">
                                     <option value="">Select Product</option>
                                     @foreach (var product in products)
                                     {
@@ -89,7 +102,13 @@
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Category</label>
-                                <InputText class="form-control" @bind-Value="newItem.Category" readonly />
+                                <InputSelect class="form-control" @bind-Value="newItem.Category">
+                                    <option value="">-- Select Category --</option>
+                                    @foreach (var cat in categories)
+                                    {
+                                        <option value="@cat">@cat</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="form-item">
                                 <label class="form-label">Quantity</label>
@@ -131,7 +150,7 @@
                         <div class="items-table">
                             <table class="table table-custom">
                                 <thead>
-                                    <tr style="background-color: #1e3a8a; color: white;">
+                                    <tr style="background-color: #0d1b2a !important; color: #ffffff !important;">
                                         <th>PRODUCT ID</th>
                                         <th>PRODUCT NAME</th>
                                         <th>QUANTITY</th>
@@ -198,7 +217,7 @@
         <div class="product-table-box">
             <table class="table table-custom">
                 <thead>
-                    <tr style="background-color: #1e3a8a; color: white;">
+                    <tr style="background-color: #0d1b2a !important; color: #ffffff !important;">
                         <th>INVOICE ID</th>
                         <th>CUSTOMER NAME</th>
                         <th>INVOICE DATE</th>
@@ -225,9 +244,9 @@
                                 <td>@item.TotalAmount.ToString("C")</td>
                                 <td>@(item.Status ?? "N/A")</td>
                                 <td>
-                                    <button class="btn btn-warning btn-sm me-1" @onclick="() => EditSalesInvoice(item)"><i class="oi oi-pencil"></i></button>
-                                    <button class="btn btn-danger btn-sm me-1" @onclick="() => DeleteSalesInvoice(item)"><i class="oi oi-trash"></i></button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => PrintSalesInvoice(item.Id)"><i class="oi oi-print"></i></button>
+                                    <button class="btn btn-warning-soft btn-sm me-1" @onclick="() => EditSalesInvoice(item)"><i class="oi oi-pencil"></i></button>
+                                    <button class="btn btn-danger-soft btn-sm me-1" @onclick="() => DeleteSalesInvoice(item)"><i class="oi oi-trash"></i></button>
+                                    <button class="btn btn-info-soft btn-sm" @onclick="() => PrintSalesInvoice(item.Id)"><i class="oi oi-print"></i></button>
                                 </td>
                             </tr>
                         }
@@ -237,7 +256,6 @@
         </div>
     }
 </div>
-
 <style>
     .main-card {
         background: #ffffff;
@@ -361,28 +379,32 @@
         border-radius: 4px;
     }
 
-    .btn-warning {
-        background-color: #ffc107;
-        color: white;
+    /* MILDER BUTTON COLORS */
+    .btn-warning-soft {
+        background-color: #ffcd39;
+        color: #212529;
         border: none;
-        padding: 8px 15px;
+        padding: 4px 8px;
         border-radius: 4px;
+        font-size: 0.875rem;
     }
 
-    .btn-danger {
-        background-color: #dc3545;
+    .btn-danger-soft {
+        background-color: #e57373;
         color: white;
         border: none;
-        padding: 8px 15px;
+        padding: 4px 8px;
         border-radius: 4px;
+        font-size: 0.875rem;
     }
 
-    .btn-info {
-        background-color: #17a2b8;
+    .btn-info-soft {
+        background-color: #4fc3f7;
         color: white;
         border: none;
-        padding: 8px 15px;
+        padding: 4px 8px;
         border-radius: 4px;
+        font-size: 0.875rem;
     }
 
     .me-1 {
@@ -396,6 +418,19 @@
         padding: 10px;
         margin-bottom: 10px;
         border-radius: 4px;
+    }
+
+    /* === FINAL OVERRIDE: DARK BLUE + WHITE TEXT HEADERS === */
+    .table-custom thead tr,
+    .table-custom thead tr th {
+        background-color: #15255a !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+
+    .table-custom thead th {
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     @@media only screen and (max-width: 768px) {
@@ -443,7 +478,7 @@
             white-space: nowrap;
         }
 
-        .btn-primary, .btn-secondary, .btn-warning, .btn-danger, .btn-info {
+        .btn-primary, .btn-secondary, .btn-warning-soft, .btn-danger-soft, .btn-info-soft {
             width: 100%;
             margin-bottom: 5px;
         }
@@ -525,6 +560,8 @@
     private List<MyBlazorServerApp.Models.SalesInvoice> filteredSalesInvoices = new();
     private List<MyBlazorServerApp.Models.Customer> customers = new();
     private List<MyBlazorServerApp.Models.Product> products = new();
+    private List<string> categories = new();
+    private List<string> availableInvoiceIds = new();
     private MyBlazorServerApp.Models.SalesInvoice salesInvoiceModel = new();
     private MyBlazorServerApp.Models.SalesInvoice? editingSalesInvoice;
     private bool isFormVisible = false;
@@ -540,12 +577,28 @@
         {
             using var db = await DbFactory.CreateDbContextAsync();
             customers = await db.Customers.Where(c => !c.IsDeleted).ToListAsync() ?? new();
-            products = await db.Products.Where(p => !p.IsDeleted).ToListAsync() ?? new();
+            products = await db.Products
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.ProductGroup)
+                .ToListAsync() ?? new();
+
+            categories = products
+                .Where(p => p.ProductGroup?.Name != null)
+                .Select(p => p.ProductGroup!.Name!)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
+
+            if (products.Any(p => p.ProductGroup == null) && !categories.Contains("Uncategorized"))
+                categories.Insert(0, "Uncategorized");
+
             salesInvoices = await db.SalesInvoices
                 .Include(si => si.Items)
                 .Include(si => si.Customer)
                 .ToListAsync() ?? new();
             filteredSalesInvoices = salesInvoices.ToList();
+
+            await LoadAvailableInvoiceIds();
         }
         catch (Exception ex)
         {
@@ -553,21 +606,57 @@
         }
     }
 
-    private void ShowAddForm()
+    private async Task LoadAvailableInvoiceIds()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        var existingIds = await db.SalesInvoices
+            .Select(si => si.InvoiceId)
+            .Where(id => id != null && id.StartsWith("INV-"))
+            .ToListAsync();
+
+        availableInvoiceIds.Clear();
+
+        var today = DateTime.Today;
+        var prefix = $"INV-{today:yyyyMMdd}";
+        int sequence = 1;
+
+        while (availableInvoiceIds.Count < 20)
+        {
+            var candidate = $"{prefix}{sequence:D3}";
+            if (!existingIds.Contains(candidate))
+            {
+                availableInvoiceIds.Add(candidate);
+            }
+            sequence++;
+        }
+    }
+
+    private async void ShowAddForm()
     {
         editingSalesInvoice = null;
         salesInvoiceModel = new MyBlazorServerApp.Models.SalesInvoice
         {
             Items = new List<MyBlazorServerApp.Models.SalesInvoiceItem>(),
-            InvoiceId = $"INV-{DateTime.Now:yyyyMMddHHmmss}",
             InvoiceDate = DateTime.Today,
             Status = "Pending"
         };
+
+        await LoadAvailableInvoiceIds();
+        if (availableInvoiceIds.Any())
+        {
+            salesInvoiceModel.InvoiceId = availableInvoiceIds.First();
+        }
+        else
+        {
+            salesInvoiceModel.InvoiceId = $"INV-{DateTime.Now:yyyyMMdd}001";
+        }
+
         newItem = new MyBlazorServerApp.Models.SalesInvoiceItem { TaxMode = "Line Exclusive" };
         selectedCustomerId = null;
         selectedProductId = null;
         isFormVisible = true;
         errorMessage = null;
+        StateHasChanged();
     }
 
     private void BackToList()
@@ -598,6 +687,13 @@
                 errorMessage = "All items must have valid Product, Quantity, and Rate.";
                 return;
             }
+
+            if (editingSalesInvoice == null && await db.SalesInvoices.AnyAsync(si => si.InvoiceId == salesInvoiceModel.InvoiceId))
+            {
+                errorMessage = "Selected Invoice ID is already in use.";
+                return;
+            }
+
             if (await db.SalesInvoices.AnyAsync(si => si.InvoiceId == salesInvoiceModel.InvoiceId && si.Id != salesInvoiceModel.Id))
             {
                 errorMessage = "Invoice ID must be unique.";
@@ -643,7 +739,6 @@
                         }
                     }
 
-                    // Update stock for each item
                     foreach (var item in salesInvoiceModel.Items)
                     {
                         var product = await db.Products.FindAsync(item.ProductId);
@@ -670,7 +765,6 @@
                     await db.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // Reset form
                     salesInvoiceModel = new MyBlazorServerApp.Models.SalesInvoice
                     {
                         Items = new List<MyBlazorServerApp.Models.SalesInvoiceItem>(),
@@ -679,7 +773,6 @@
                     };
                     isFormVisible = false;
 
-                    // Reload sales invoices and update filtered list
                     await OnInitializedAsync();
                     ApplyFilter();
 
@@ -785,9 +878,9 @@
         if (salesInvoiceModel.Items == null)
             salesInvoiceModel.Items = new List<SalesInvoiceItem>();
 
-        if (selectedProductId == null || newItem.Quantity <= 0 || newItem.Rate <= 0)
+        if (selectedProductId == null || newItem.Quantity <= 0 || newItem.Rate <= 0 || string.IsNullOrWhiteSpace(newItem.Category))
         {
-            errorMessage = "Product, Quantity, and Rate are required for items.";
+            errorMessage = "Product, Category, Quantity, and Rate are required for items.";
             return;
         }
 
@@ -797,10 +890,6 @@
             errorMessage = "Selected product not found.";
             return;
         }
-
-        // Only fill category if empty
-        if (string.IsNullOrWhiteSpace(newItem.Category))
-            newItem.Category = "N/A";
 
         newItem.LineTotal = CalculateLineTotal(newItem);
 
@@ -817,7 +906,15 @@
             LineTotal = newItem.LineTotal
         });
 
-        newItem = new SalesInvoiceItem { TaxMode = "Line Exclusive" };
+        newItem = new SalesInvoiceItem
+        {
+            TaxMode = "Line Exclusive",
+            Quantity = 0,
+            Rate = 0,
+            DiscountPercent = null,
+            GSTPercent = null,
+            LineTotal = 0
+        };
         selectedProductId = null;
 
         UpdateTotalAmount();
@@ -838,7 +935,6 @@
         decimal taxableAmount = baseAmount - discount;
         if (item.TaxMode == "Line Inclusive" && item.GSTPercent.HasValue)
         {
-            decimal gstRate = item.GSTPercent.Value / 100m;
             return taxableAmount;
         }
         else if (item.GSTPercent.HasValue)
@@ -863,5 +959,29 @@
     private void UpdateLineTotal()
     {
         newItem.LineTotal = CalculateLineTotal(newItem);
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e?.Value?.ToString(), out int id))
+        {
+            selectedProductId = id;
+            var product = products.FirstOrDefault(p => p.Id == id);
+            if (product != null)
+            {
+                newItem.Category = product.ProductGroup?.Name ?? "Uncategorized";
+                newItem.Rate = product.RetailRate;
+                newItem.GSTPercent = product.GstPercentage;
+            }
+        }
+        else
+        {
+            selectedProductId = null;
+            newItem.Category = null;
+            newItem.Rate = 0;
+            newItem.GSTPercent = null;
+        }
+
+        UpdateLineTotal();
     }
 }
