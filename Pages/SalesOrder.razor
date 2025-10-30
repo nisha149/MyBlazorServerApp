@@ -1,6 +1,8 @@
-﻿ @page "/salesorder"
+﻿@page "/salesorder"
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
+@using System.Globalization
+
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -126,7 +128,7 @@
 
                             <div class="form-item">
                                 <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
+                                <InputNumber class="form-control" @bind-Value="newItem.Quantity" @oninput="UpdateLineTotal" />
                             </div>
                         </div>
 
@@ -134,17 +136,17 @@
                         <div class="grid-three">
                             <div class="form-item">
                                 <label class="form-label">Rate <span class="text-danger">*</span></label>
-                                <InputNumber class="form-control" @bind-Value="newItem.Rate" />
+                                <InputNumber class="form-control" @bind-Value="newItem.Rate" @oninput="UpdateLineTotal" />
                             </div>
 
                             <div class="form-item">
                                 <label class="form-label">Discount %</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" />
+                                <InputNumber class="form-control" @bind-Value="newItem.DiscountPercent" @oninput="UpdateLineTotal" />
                             </div>
 
                             <div class="form-item">
                                 <label class="form-label">GST %</label>
-                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" />
+                                <InputNumber class="form-control" @bind-Value="newItem.GSTPercent" @oninput="UpdateLineTotal" />
                             </div>
                         </div>
 
@@ -153,7 +155,7 @@
                             <div class="form-item">
                                 <label class="form-label">Line Total</label>
                                 <div class="form-control" style="font-weight: bold; background:#f8f9fa; color:#1e3a8a;">
-                                    <strong>₹ @newItem.LineTotal.ToString("N2")</strong>
+                                    @FormatCurrency(newItem.LineTotal)
                                 </div>
                             </div>
 
@@ -205,10 +207,10 @@
                                                 <td>@(item.ProductName ?? "N/A")</td>
                                                 <td>@(item.Category ?? "N/A")</td>
                                                 <td>@item.Quantity</td>
-                                                <td><strong>₹ @(item.Rate > 0 ? item.Rate.ToString("N2") : "0.00")</strong></td>
+                                                <td>@FormatCurrency(item.Rate)</td>
                                                 <td>@(item.DiscountPercent > 0 ? item.DiscountPercent.ToString("F1") : "0.0")</td>
                                                 <td>@(item.GSTPercent > 0 ? item.GSTPercent.ToString("F1") : "0.0")</td>
-                                                <td><strong>₹ @(item.LineTotal > 0 ? item.LineTotal.ToString("N2") : "0.00")</strong></td>
+                                                <td>@FormatCurrency(item.LineTotal)</td>
                                                 <td>@(item.TaxMode ?? "N/A")</td>
                                                 <td>
                                                     <button class="btn-action btn-sm" @onclick="() => RemoveItem(item)">
@@ -231,7 +233,7 @@
                                 <label class="form-label">Total Amount</label>
                                 <div class="form-control"
                                      style="font-weight:bold;background:#f8f9fa;color:#1e3a8a;">
-                                    <strong>₹ @salesOrderModel.TotalAmount.ToString("N2")</strong>
+                                    @FormatCurrency(salesOrderModel.TotalAmount)
                                 </div>
                             </div>
 
@@ -275,7 +277,7 @@
                                 <td>@(so.Customer?.Name ?? so.CustomerName ?? "N/A")</td>
                                 <td>@(so.OrderDate != default ? so.OrderDate.ToShortDateString() : "N/A")</td>
                                 <td>@(so.ExpectedDelivery != null ? so.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td><strong>₹ @(so.TotalAmount > 0 ? so.TotalAmount.ToString("N2") : "0.00")</strong></td>
+                                <td>@FormatCurrency(so.TotalAmount)</td>
                                 <td>@(so.Status ?? "N/A")</td>
                                 <td>
                                     <button class="btn-action btn-sm me-1" @onclick="() => EditSalesOrder(so)">Edit</button>
@@ -499,57 +501,48 @@
 
     /* === RESPONSIVE === */
     @@media (max-width: 768px) {
-        .grid-two, .grid-three
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .btn-primary, .btn-secondary, .btn-action {
-        width: 100%;
-        margin-bottom: 8px;
-    }
-
-    .action-container {
-        justify-content: center;
-    }
-
-    .form-actions.actions-right {
-        display: block;
-        text-align: center;
-    }
-
-        .form-actions.actions-right .btn {
-            min-width: 0;
-            width: 100%;
+        .grid-two, .grid-three {
+            grid-template-columns: 1fr;
         }
 
+        .btn-primary, .btn-secondary, .btn-action {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .action-container {
+            justify-content: center;
+        }
+
+        .form-actions.actions-right {
+            display: block;
+            text-align: center;
+        }
+
+            .form-actions.actions-right .btn {
+                min-width: 0;
+                width: 100%;
+            }
     }
 
     @@media (min-width: 769px) and (max-width: 1024px) {
-        .grid-two
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .grid-three {
-        grid-template-columns: 1fr 1fr;
-    }
-
+        .grid-three {
+            grid-template-columns: 1fr 1fr;
+        }
     }
 
     @@media (min-width: 1025px) {
-        .grid-two
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .grid-three {
-        grid-template-columns: 1fr 1fr 1fr;
-    }
-
+        .grid-three {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
     }
 </style>
 
@@ -570,6 +563,14 @@
     private List<string> categories = new();
     private int? selectedProductId;
     private string? selectedCategory;
+
+    // ---- Currency Formatter ----
+    private static readonly CultureInfo InCulture = new CultureInfo("en-IN");
+
+    private string FormatCurrency(decimal value)
+    {
+        return value % 1 == 0 ? value.ToString("C0", InCulture) : value.ToString("C2", InCulture);
+    }
 
     private async Task LoadCustomers()
     {
@@ -665,6 +666,7 @@
     private void ResetNewItem()
     {
         selectedProductId = null;
+        selectedCategory = null;
         newItem = new MyBlazorServerApp.Models.SalesOrderItem
         {
             TaxMode = "Line Exclusive"

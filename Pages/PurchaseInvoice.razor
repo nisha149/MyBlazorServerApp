@@ -1,6 +1,7 @@
 ﻿@page "/purchaseinvoice"
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
+@using System.Globalization
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -129,7 +130,7 @@
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
                                 <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
-                                    <strong>&#8377; @((newItem.LineTotal ?? 0).ToString("N2"))</strong>
+                                    @FormatCurrency(newItem.LineTotal ?? 0)
                                 </div>
                             </div>
                             <div class="form-item">
@@ -173,10 +174,10 @@
                                             <td>@item.ProductId</td>
                                             <td>@item.ProductName</td>
                                             <td>@item.Quantity</td>
-                                            <td><strong>&#8377; @(item.Rate.HasValue? item.Rate.Value.ToString("N2") : "N/A")</strong></td>
+                                            <td>@FormatCurrency(item.Rate ?? 0)</td>
                                             <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
                                             <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                            <td><strong>&#8377; @(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</strong></td>
+                                            <td>@FormatCurrency(item.LineTotal ?? 0)</td>
                                             <td>@item.TaxMode</td>
                                             <td>
                                                 <button class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item)">Delete</button>
@@ -191,7 +192,7 @@
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
                                 <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
-                                    <strong>&#8377; @((purchaseInvoiceModel.TotalAmount ?? 0).ToString("N2"))</strong>
+                                    @FormatCurrency(purchaseInvoiceModel.TotalAmount ?? 0)
                                 </div>
                             </div>
                             <div class="form-actions">
@@ -233,7 +234,7 @@
                                 <td>@pi.SupplierName</td>
                                 <td>@(pi.InvoiceDate.HasValue? pi.InvoiceDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(pi.DueDate.HasValue? pi.DueDate.Value.ToShortDateString() : "N/A")</td>
-                                <td><strong>&#8377; @(pi.TotalAmount.HasValue? pi.TotalAmount.Value.ToString("N2") : "N/A")</strong></td>
+                                <td>@FormatCurrency(pi.TotalAmount ?? 0)</td>
                                 <td>@pi.Status</td>
                                 <td class="action-buttons">
                                     <button class="btn btn-warning-soft btn-sm" @onclick="() => EditPurchaseInvoice(pi)">Edit</button>
@@ -265,6 +266,14 @@
     private List<Supplier> suppliers = new();
     private List<string> categories = new();
     private string? selectedCategory;
+
+    // ---- Currency Formatter ----
+    private static readonly CultureInfo InCulture = new CultureInfo("en-IN");
+
+    private string FormatCurrency(decimal value)
+    {
+        return value % 1 == 0 ? value.ToString("C0", InCulture) : value.ToString("C2", InCulture);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -858,81 +867,72 @@
     }
 
     @@media (max-width: 768px) {
-        .page-title
+        .page-title {
+            font-size: 20px;
+        }
 
-    {
-        font-size: 20px;
-    }
+        .subtitle {
+            font-size: 14px;
+        }
 
-    .subtitle {
-        font-size: 14px;
-    }
+        .action-container {
+            justify-content: center;
+        }
 
-    .action-container {
-        justify-content: center;
-    }
+        .search-bar .form-control {
+            width: 100%;
+            max-width: 200px;
+        }
 
-    .search-bar .form-control {
-        width: 100%;
-        max-width: 200px;
-    }
+        .grid-two, .grid-three {
+            grid-template-columns: 1fr;
+        }
 
-    .grid-two, .grid-three {
-        grid-template-columns: 1fr;
-    }
+        .form-actions {
+            text-align: center;
+        }
 
-    .form-actions {
-        text-align: center;
-    }
+        .table-custom th, .table-custom td {
+            min-width: 100px;
+            padding: 6px;
+            font-size: 12px;
+        }
 
-    .table-custom th, .table-custom td {
-        min-width: 100px;
-        padding: 6px;
-        font-size: 12px;
-    }
+        .action-buttons {
+            flex-direction: column;
+        }
 
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .btn-warning-soft, .btn-danger-soft, .btn-info-soft {
-        width: 100%;
-        text-align: center;
-    }
-
+        .btn-warning-soft, .btn-danger-soft, .btn-info-soft {
+            width: 100%;
+            text-align: center;
+        }
     }
 
     @@media (min-width: 769px) and (max-width: 1024px) {
-        .grid-two
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr 1fr;
-    }
+        .grid-three {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    .grid-three {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .form-actions {
-        text-align: right;
-    }
-
+        .form-actions {
+            text-align: right;
+        }
     }
 
     @@media (min-width: 1025px) {
-        .grid-two
+        .grid-two {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr 1fr;
-    }
+        .grid-three {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
 
-    .grid-three {
-        grid-template-columns: 1fr 1fr 1fr;
-    }
-
-    .form-actions {
-        text-align: right;
-    }
-
+        .form-actions {
+            text-align: right;
+        }
     }
 </style>

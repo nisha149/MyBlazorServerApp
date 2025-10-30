@@ -2,6 +2,8 @@
 @using MyBlazorServerApp.Models
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.JSInterop
+@using System.Globalization
+
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -137,7 +139,7 @@
                             <div class="form-item">
                                 <label class="form-label">Line Total (incl. GST)</label>
                                 <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
-                                    <strong>&#8377; @((newItem.LineTotal ?? 0).ToString("N2"))</strong>
+                                    @FormatCurrency(newItem.LineTotal ?? 0)
                                 </div>
                             </div>
                             <div class="form-item">
@@ -188,10 +190,10 @@
                                                 <td>@item.ProductId</td>
                                                 <td>@item.ProductName</td>
                                                 <td>@item.Quantity</td>
-                                                <td>@(item.Rate.HasValue? item.Rate.Value.ToString("N2") : "N/A")</td>
+                                                <td>@FormatCurrency(item.Rate ?? 0)</td>
                                                 <td>@(item.DiscountPercent.HasValue? item.DiscountPercent.Value.ToString("F2") : "N/A")</td>
                                                 <td>@(item.GSTPercent.HasValue? item.GSTPercent.Value.ToString("F2") : "N/A")</td>
-                                                <td><strong>&#8377; @(item.LineTotal.HasValue? item.LineTotal.Value.ToString("N2") : "N/A")</strong></td>
+                                                <td>@FormatCurrency(item.LineTotal ?? 0)</td>
                                                 <td>@item.TaxMode</td>
                                                 <td>
                                                     <div style="display: flex; gap: 6px; align-items: center;">
@@ -211,7 +213,7 @@
                             <div class="form-item">
                                 <label class="form-label">Grand Total (incl. GST)</label>
                                 <div class="form-control" style="font-weight: bold; background: #f8f9fa; color: #1e3a8a;">
-                                    <strong>&#8377; @((purchaseOrderModel.TotalAmount ?? 0).ToString("N2"))</strong>
+                                    @FormatCurrency(purchaseOrderModel.TotalAmount ?? 0)
                                 </div>
                             </div>
                             <!-- SAVE PURCHASE ORDER BUTTON — RIGHT ALIGNED -->
@@ -256,7 +258,7 @@
                                 <td>@po.SupplierName</td>
                                 <td>@(po.OrderDate.HasValue? po.OrderDate.Value.ToShortDateString() : "N/A")</td>
                                 <td>@(po.ExpectedDelivery.HasValue? po.ExpectedDelivery.Value.ToShortDateString() : "N/A")</td>
-                                <td><strong>&#8377; @(po.TotalAmount.HasValue? po.TotalAmount.Value.ToString("N2") : "N/A")</strong></td>
+                                <td>@FormatCurrency(po.TotalAmount ?? 0)</td>
                                 <td>@po.Status</td>
                                 <td>
                                     <div style="display: flex; gap: 6px; align-items: center;">
@@ -297,6 +299,14 @@
     private List<ProductGroup> productGroups = new();
     private int? selectedProductId;
     private int? selectedCategoryId;
+
+    // ---- Currency Formatter ----
+    private static readonly CultureInfo InCulture = new CultureInfo("en-IN");
+
+    private string FormatCurrency(decimal value)
+    {
+        return value % 1 == 0 ? value.ToString("C0", InCulture) : value.ToString("C2", InCulture);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -854,17 +864,14 @@
 
     /* Responsive */
     @@media (max-width: 768px) {
-        .grid-two, .grid-three
+        .grid-two, .grid-three {
+            grid-template-columns: 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .table-custom th, .table-custom td {
-        min-width: 100px;
-        padding: 6px;
-        font-size: 12px;
-    }
-
+        .table-custom th, .table-custom td {
+            min-width: 100px;
+            padding: 6px;
+            font-size: 12px;
+        }
     }
 </style>

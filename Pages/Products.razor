@@ -3,7 +3,9 @@
 @using Microsoft.EntityFrameworkCore
 @using MyBlazorServerApp.Models
 @using MyBlazorServerApp.Data
+@using System.Globalization
 @inject IDbContextFactory<AppDbContext> DbFactory
+
 <div class="main-card">
     <div class="header-container">
         @if (!isFormVisible)
@@ -137,7 +139,7 @@
                                 <td>@product.Name</td>
                                 <td>@(product.ProductGroup?.Name ?? "N/A")</td>
                                 <td>@product.Unit</td>
-                                <td>₹@product.RetailRate</td>
+                                <td>@FormatCurrency(product.RetailRate)</td>
                                 <td>@product.StockQuantity</td> <!-- Added StockQuantity -->
                                 <td>
                                     <button class="btn btn-warning btn-sm me-1" @onclick="@(() => EditProduct(product))">Edit</button>
@@ -157,6 +159,7 @@
         </div>
     }
 </div>
+
 @code {
     private List<Product> products = new();
     private List<Product> filteredProducts = new();
@@ -168,6 +171,14 @@
     private int currentPage = 1;
     private int pageSize = 5;
     private string? errorMessage;
+
+    // ---- Currency Formatter ----
+    private static readonly CultureInfo InCulture = new CultureInfo("en-IN");
+
+    private string FormatCurrency(decimal value)
+    {
+        return value % 1 == 0 ? value.ToString("C0", InCulture) : value.ToString("C2", InCulture);
+    }
 
     protected override async Task OnInitializedAsync()
     {
